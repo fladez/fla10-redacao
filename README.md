@@ -46,4 +46,4 @@ fla10 check-editorial
 O comando confirma a leitura dos quatro documentos-base e informa o commit consultado. Não altera o repositório editorial.
 
 ## Estado
-Documentação e esqueleto inicial do adaptador editorial criados. Conexão real, execução dos testes e validação do parser continuam pendentes. Publicação automática fora do escopo inicial.
+Documentação e esqueleto inicial do adaptador editorial criados. Lint e testes automatizados aprovados no GitHub Actions em Python 3.11 e 3.12. Conexão real com o vault, execução local e validação do parser de pautas continuam pendentes. Publicação automática fora do escopo inicial.
