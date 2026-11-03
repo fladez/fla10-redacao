@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+from typing import Self
 from urllib.parse import quote
 
 import httpx
@@ -50,18 +51,20 @@ class GitHubEditorialReader:
         self._settings = settings
         self._client = client or httpx.Client(timeout=20.0)
         self._owns_client = client is None
-        self._client.headers.update({
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {settings.github_token}",
-            "X-GitHub-Api-Version": "2022-11-28",
-        })
+        self._client.headers.update(
+            {
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {settings.github_token}",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        )
         self._cache: dict[tuple[str, str], EditorialFile] = {}
 
     def close(self) -> None:
         if self._owns_client:
             self._client.close()
 
-    def __enter__(self) -> "GitHubEditorialReader":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
