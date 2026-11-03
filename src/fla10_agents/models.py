@@ -2,7 +2,15 @@
 
 from datetime import datetime
 from enum import StrEnum
-from pydantic import BaseModel, Field, HttpUrl
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+
+
+def _require_aware_datetime(value: datetime | None) -> datetime | None:
+    if value is not None and value.utcoffset() is None:
+        raise ValueError("A data/hora precisa conter fuso ou offset explícito.")
+    return value
 
 
 class EventStatus(StrEnum):
@@ -32,6 +40,11 @@ class EvidenceSource(BaseModel):
     supporting_excerpt_or_data: str | None = None
     limitations: str | None = None
 
+    @field_validator("published_at", "accessed_at")
+    @classmethod
+    def validate_source_dates(cls, value: datetime | None) -> datetime | None:
+        return _require_aware_datetime(value)
+
 
 class SportsEvent(BaseModel):
     event_id: str
@@ -48,6 +61,29 @@ class SportsEvent(BaseModel):
     event_status: EventStatus
     sources: list[EvidenceSource] = Field(default_factory=list)
     last_verified_at: datetime
+
+    @field_validator("starts_at_local")
+    @classmethod
+    def validate_local_start(cls, value: datetime) -> datetime:
+        if value.tzinfo is not None:
+            raise ValueError(
+                "starts_at_local deve ser horário local sem offset; informe o fuso em timezone."
+            )
+        return value
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"Fuso horário IANA inválido: {value}") from exc
+        return value
+
+    @field_validator("last_verified_at")
+    @classmethod
+    def validate_verification_date(cls, value: datetime) -> datetime:
+        return _require_aware_datetime(value)  # type: ignore[return-value]
 
 
 class EditorialProposal(BaseModel):
@@ -90,3 +126,8 @@ class ResearchDossier(BaseModel):
     admissible_analysis: list[str] = Field(default_factory=list)
     excluded_claims: list[str] = Field(default_factory=list)
     recommendation: str
+
+    @field_validator("researched_at")
+    @classmethod
+    def validate_research_date(cls, value: datetime) -> datetime:
+        return _require_aware_datetime(value)  # type: ignore[return-value]
