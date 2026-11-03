@@ -1,0 +1,1 @@
+"""Leitura e interpretação da base editorial canônica."""
