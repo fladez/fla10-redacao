@@ -46,4 +46,4 @@ fla10 check-editorial
 O comando confirma a leitura dos quatro documentos-base e informa o commit consultado. Não altera o repositório editorial.
 
 ## Estado
-Fundação documental e desenho do MVP concluídos em nível inicial. O primeiro adaptador de leitura e os modelos de dados estão em implementação. Publicação automática fora do escopo inicial.
+Documentação e esqueleto inicial do adaptador editorial criados. Conexão real, execução dos testes e validação do parser continuam pendentes. Publicação automática fora do escopo inicial.
