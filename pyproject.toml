@@ -8,13 +8,25 @@ version = "0.1.0"
 description = "Sistema modular de agentes para apoiar a Redação Fla10"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "python-dotenv>=1.0",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+agents = ["openai-agents"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "mypy>=1.11",
+]
 
-[tool.setuptools]
-packages = []
+[project.scripts]
+fla10 = "fla10_agents.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
