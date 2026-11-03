@@ -16,12 +16,12 @@ Criar um fine-grained personal access token no GitHub:
 2. Gerar um token com nome `Fla10-Agents-readonly`.
 3. Em Resource owner, selecionar `rcorreas`.
 4. Em Repository access, selecionar **Only select repositories** e marcar apenas `Redacao-Fla10`.
-5. Em Repository permissions, conceder **Contents: Read-only**. Manter as demais permissões sem acesso; Metadata read é a permissão básica do GitHub.
+5. Em Repository permissions, conceder **Contents: Read-only**. Não conceder permissões de escrita. Metadata é a permissão básica de leitura do repositório.
 6. Definir validade limitada, por exemplo 90 dias, e gerar o token.
 
 Não conceder Contents: Read and write. O MVP não precisa alterar o repositório editorial.
 
-O GitHub recomenda tokens fine-grained, acesso restrito aos repositórios necessários e permissões mínimas. Consulte a documentação oficial: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+O GitHub recomenda tokens fine-grained, acesso restrito aos repositórios necessários e permissões mínimas. Consulte a [documentação oficial](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
 **Nunca cole o token nesta conversa, em arquivos versionados ou em capturas de tela.**
 
@@ -54,13 +54,22 @@ Não é necessário configurar uma chave OpenAI para testar o adaptador de leitu
 
 ```bash
 pytest
+ruff check .
 ```
 
 Os testes do adaptador usam respostas simuladas; não fazem chamadas reais ao GitHub e não exigem token válido.
 
-## 6. Verificação de acesso real
+## 6. Verificar acesso real
 
-Depois que o comando de diagnóstico for implementado, executar a leitura dos quatro arquivos de entrada. O resultado deve informar repositório, branch, commit SHA e nomes dos documentos lidos, nunca o token.
+Com o ambiente virtual ativo e o token configurado no `.env`, executar:
+
+```bash
+fla10 check-editorial
+```
+
+O resultado deve informar repositório, branch, commit SHA e nomes dos quatro documentos lidos. O token nunca é exibido.
+
+Se o comando retornar erro 401 ou 403, conferir a validade do token, o repositório selecionado e a permissão Contents: Read-only. Não ampliar permissões para escrita como tentativa de resolver erro de leitura.
 
 ## 7. Segurança
 
