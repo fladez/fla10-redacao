@@ -33,6 +33,17 @@ Calendário e Agenda, Monitoramento e Pautas, e Apuração e Verificação. O MV
 - [Integração com Redacao-Fla10](docs/07-integracao-com-redacao-fla10.md)
 - [Fluxo MVP ponta a ponta](docs/08-fluxo-mvp-ponta-a-ponta.md)
 - [Contratos de dados do MVP](docs/09-contratos-de-dados-mvp.md)
+- [Configuração local](docs/10-configuracao-local.md)
+
+## Diagnóstico da integração editorial
+
+Depois de configurar o arquivo local `.env`:
+
+```bash
+fla10 check-editorial
+```
+
+O comando confirma a leitura dos quatro documentos-base e informa o commit consultado. Não altera o repositório editorial.
 
 ## Estado
-Fundação documental e desenho do MVP concluídos em nível inicial. Implementação funcional ainda não iniciada. Publicação automática fora do escopo inicial.
+Fundação documental e desenho do MVP concluídos em nível inicial. O primeiro adaptador de leitura e os modelos de dados estão em implementação. Publicação automática fora do escopo inicial.
