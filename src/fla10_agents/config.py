@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 import os
 
+from dotenv import load_dotenv
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -13,6 +15,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        load_dotenv()
         token = os.getenv("GITHUB_TOKEN", "").strip()
         if not token:
             raise ValueError(
