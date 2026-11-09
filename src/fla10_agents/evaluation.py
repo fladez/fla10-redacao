@@ -2,7 +2,7 @@
 
 import json
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -92,7 +92,7 @@ def run_report_test(project_root: Path | None = None) -> Path:
     prompt, dossier = _read_test_material(root)
     settings = OpenRouterSettings.from_env()
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     output_dir = root / "artifacts" / "model-evaluation" / run_id
     output_dir.mkdir(parents=True, exist_ok=False)
 
