@@ -34,6 +34,9 @@ Calendário e Agenda, Monitoramento e Pautas, e Apuração e Verificação. O MV
 - [Fluxo MVP ponta a ponta](docs/08-fluxo-mvp-ponta-a-ponta.md)
 - [Contratos de dados do MVP](docs/09-contratos-de-dados-mvp.md)
 - [Configuração local](docs/10-configuracao-local.md)
+- [Protocolo de avaliação comparativa](docs/11-protocolo-avaliacao-modelos.md)
+- [Prompt comum do teste de reportagem](docs/12-prompt-comum-teste-reportagem.md)
+- [Pacote documental — A força da Nação](docs/13-caso-teste-a-forca-da-nacao.md)
 
 ## Diagnóstico da integração editorial
 
@@ -45,5 +48,17 @@ fla10 check-editorial
 
 O comando confirma a leitura dos quatro documentos-base e informa o commit consultado. Não altera o repositório editorial.
 
+## Avaliação comparativa de modelos
+
+O primeiro caso editorial está preparado. Depois de configurar `OPENROUTER_API_KEY` localmente:
+
+```bash
+fla10 run-report-test
+```
+
+O comando envia o mesmo prompt e o mesmo dossiê aos três modelos definidos no protocolo, salva as respostas cegas e os metadados em `artifacts/model-evaluation/`, diretório ignorado pelo Git. A chave de identificação dos modelos fica em arquivo separado nessa pasta. Não compartilhe a chave de API nem publique os resultados antes da avaliação.
+
+A execução real ainda depende de configurar a chave e validar a primeira rodada. Consulte [Configuração local](docs/10-configuracao-local.md).
+
 ## Estado
-Documentação e esqueleto inicial do adaptador editorial criados. Lint e testes automatizados aprovados no GitHub Actions em Python 3.11 e 3.12. Conexão real com o vault, execução local e validação do parser de pautas continuam pendentes. Publicação automática fora do escopo inicial.
+Fundação técnica e módulo inicial de avaliação comparativa implementados. Lint e testes anteriores aprovados em Python 3.11 e 3.12; a nova implementação de avaliação aguarda execução da CI. A comparação real dos modelos depende da configuração segura da chave OpenRouter. Os agentes editoriais completos, parser de pautas e publicação automática ainda não estão implementados.
