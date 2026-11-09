@@ -48,18 +48,20 @@ cp .env.example .env
 
 Edite o arquivo `.env` e informe o token GitHub em `GITHUB_TOKEN`. Mantenha o restante como está, salvo necessidade explícita. O arquivo `.env` é ignorado pelo Git.
 
-Não é necessário configurar uma chave OpenAI para testar o adaptador de leitura do GitHub. A chave será necessária somente quando iniciarmos execuções reais com o Agents SDK.
+Para executar o teste comparativo dos modelos, informe também a chave recém-gerada do OpenRouter em `OPENROUTER_API_KEY`. A chave deve ser criada em https://openrouter.ai/settings/keys e guardada somente no arquivo local `.env`. Não a cole no chat, não a inclua em capturas de tela e não a versione no Git.
 
-## 5. Executar testes
+O módulo de avaliação usa o endpoint OpenRouter e os IDs documentados em `docs/11-protocolo-avaliacao-modelos.md`. Não é necessária uma chave direta da OpenAI para essa comparação. `OPENAI_API_KEY` permanece reservado a futuras integrações diretas.
+
+## 5. Executar testes locais
 
 ```bash
 pytest
 ruff check .
 ```
 
-Os testes do adaptador usam respostas simuladas; não fazem chamadas reais ao GitHub e não exigem token válido.
+Os testes automatizados não fazem chamadas pagas ao OpenRouter e não exigem uma chave válida.
 
-## 6. Verificar acesso real
+## 6. Verificar acesso real ao repositório editorial
 
 Com o ambiente virtual ativo e o token configurado no `.env`, executar:
 
@@ -71,10 +73,25 @@ O resultado deve informar repositório, branch, commit SHA e nomes dos quatro do
 
 Se o comando retornar erro 401 ou 403, conferir a validade do token, o repositório selecionado e a permissão Contents: Read-only. Não ampliar permissões para escrita como tentativa de resolver erro de leitura.
 
-## 7. Segurança
+## 7. Executar o primeiro teste comparativo
+
+Depois de configurar a chave OpenRouter, executar:
+
+```bash
+fla10 run-report-test
+```
+
+O programa envia o mesmo prompt e o mesmo dossiê aos três modelos, sem habilitar pesquisa externa. As respostas recebem rótulos cegos e são salvas localmente em `artifacts/model-evaluation/`, junto com metadados de uso e um arquivo separado que identifica cada modelo.
+
+O diretório `artifacts/` é ignorado pelo Git. Não enviar a chave de cegamento antes de concluir a avaliação cega. A primeira execução pode gerar cobrança no OpenRouter; consulte o preço dos modelos no dia do teste e defina um limite de gastos na conta.
+
+A chamada não permite fallback silencioso para outro modelo. Se um endpoint falhar, o comando informa o modelo e interrompe a execução; não substitui o modelo por outro.
+
+## 8. Segurança
 
 - Não versionar `.env`.
-- Não registrar o token em logs.
+- Não registrar credenciais em logs.
+- Não compartilhar a chave OpenRouter no chat.
+- Revogar qualquer chave que tenha sido exposta.
 - Não usar a credencial do conector de administração para o processo de execução.
-- Revogar o token se houver exposição.
 - Não habilitar escrita no Redacao-Fla10 para os agentes do MVP.
