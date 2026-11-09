@@ -4,6 +4,7 @@ import json
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import httpx
@@ -44,6 +45,7 @@ def _request_model(
     prompt: str,
     dossier: str,
 ) -> dict[str, Any]:
+    started_at = perf_counter()
     response = client.post(
         f"{settings.api_url}/chat/completions",
         headers={
@@ -66,6 +68,7 @@ def _request_model(
             "provider": {"allow_fallbacks": False},
         },
     )
+    elapsed_seconds = round(perf_counter() - started_at, 3)
     if response.is_error:
         raise ModelEvaluationError(
             f"Falha no modelo {model_id}: HTTP {response.status_code}. "
@@ -80,7 +83,7 @@ def _request_model(
         ) from exc
     if not isinstance(text, str) or not text.strip():
         raise ModelEvaluationError(f"O modelo {model_id} retornou conteúdo vazio.")
-    return {"text": text, "response": payload}
+    return {"text": text, "response": payload, "elapsed_seconds": elapsed_seconds}
 
 
 def run_report_test(project_root: Path | None = None) -> Path:
@@ -114,6 +117,8 @@ def run_report_test(project_root: Path | None = None) -> Path:
                     "served_model": result["response"].get("model"),
                     "provider": result["response"].get("provider"),
                     "usage": usage,
+                    "reported_cost_usd": usage.get("cost"),
+                    "elapsed_seconds": result["elapsed_seconds"],
                     "generation": {
                         "temperature": TEMPERATURE,
                         "top_p": TOP_P,
