@@ -27,6 +27,7 @@ from fla10_agents.publication import (
     prepare_package,
     register_publication,
 )
+from fla10_agents.publication_import import importar_versao
 from fla10_agents.research import ResearchInputError, claims_from_payload
 from fla10_agents.writing import (
     LLMProvider,
@@ -585,6 +586,28 @@ def publicacao_list(database_path: str, status: str | None, limit: int) -> int:
     return 0
 
 
+def publicacao_importar(
+    source: str,
+    version: int,
+    database_path: str,
+    output: str,
+    article_format: str,
+) -> int:
+    """Monta o pacote de CMS de uma versão aprovada em exports/."""
+    package, destination = importar_versao(
+        source,
+        version,
+        database_path=database_path,
+        output_root=output,
+        formato=article_format,
+    )
+    payload = package_summary(package)
+    payload["output"] = str(destination)
+    payload["files"] = ["article.html", "article.md", "package.json", "metadata.json"]
+    _print_json(payload)
+    return 0
+
+
 def publicacao_registrar(
     database_path: str,
     package_id: str,
@@ -1031,6 +1054,35 @@ def main() -> None:
         default=default_editorial_database_path(),
         help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
     )
+    publicacao_importar_parser = publicacao_commands.add_parser(
+        "importar",
+        help="Monta e exporta o pacote de CMS de uma versão aprovada em exports/.",
+    )
+    publicacao_importar_parser.add_argument(
+        "pasta",
+        help="Pasta da execução, por exemplo exports/redacao-2026-11-10-1622.",
+    )
+    publicacao_importar_parser.add_argument(
+        "--versao",
+        required=True,
+        type=int,
+        help="Número da versão aprovada.",
+    )
+    publicacao_importar_parser.add_argument(
+        "--output",
+        default=str(Path("exports") / "pacotes"),
+        help="Pasta de saída dos pacotes (padrão: exports/pacotes).",
+    )
+    publicacao_importar_parser.add_argument(
+        "--formato",
+        default="noticia",
+        help="Formato editorial do pacote (padrão: noticia).",
+    )
+    publicacao_importar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
     publicacao_registrar_parser = publicacao_commands.add_parser(
         "registrar",
         help="Registra uma publicação externa já confirmada.",
@@ -1157,6 +1209,14 @@ def main() -> None:
                     args.database,
                     args.status,
                     args.limit,
+                ))
+            if args.publicacao_command == "importar":
+                raise SystemExit(publicacao_importar(
+                    args.pasta,
+                    args.versao,
+                    args.database,
+                    args.output,
+                    args.formato,
                 ))
             if args.publicacao_command == "registrar":
                 raise SystemExit(publicacao_registrar(

@@ -55,7 +55,13 @@ def slugify(title: str, *, max_length: int = 80) -> str:
         char for char in decomposed if not unicodedata.combining(char)
     )
     slug = re.sub(r"[^a-z0-9]+", "-", ascii_text.casefold()).strip("-")
-    return (slug[:max_length].rstrip("-") or "materia")
+    if len(slug) <= max_length:
+        return slug or "materia"
+
+    truncado = slug[:max_length]
+    if "-" in truncado:
+        truncado = truncado.rsplit("-", 1)[0]
+    return truncado.rstrip("-") or slug[:max_length].rstrip("-") or "materia"
 
 
 def _require_approved_draft(store: EditorialRepository, draft_id: str) -> DraftArticle:
@@ -136,9 +142,10 @@ def export_package(
             "exported_at": reference,
         })
 
+        subtitle_block = f"## {exported.subtitle}\n\n" if exported.subtitle.strip() else ""
         article_markdown = (
             f"# {exported.title}\n\n"
-            f"## {exported.subtitle}\n\n"
+            f"{subtitle_block}"
             f"{exported.body_markdown}\n"
         )
 

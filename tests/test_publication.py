@@ -52,6 +52,13 @@ def test_slugify_removes_accents_and_punctuation() -> None:
     assert slugify("a" * 100, max_length=10) == "a" * 10
 
 
+def test_slugify_corta_em_palavra_inteira() -> None:
+    slug = slugify("CBF confirma final da Copa do Brasil Feminina no Luso-Brasileiro")
+
+    assert len(slug) <= 80
+    assert not slug.endswith("luso-brasile")
+
+
 def test_prepare_requires_approved_draft(tmp_path) -> None:
     database = tmp_path / "editorial.db"
     write_state(

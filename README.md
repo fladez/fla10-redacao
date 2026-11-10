@@ -97,6 +97,18 @@ Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `complet
 
 Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. A aprovação é registrada localmente em `aprovada.json` na pasta da execução; nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
 
+## Pacote de CMS
+
+Aprovar na interface gera o pacote da versão escolhida em `exports/pacotes/<execução>-v<versão>/`, com `article.md`, `article.html`, `package.json` e `metadata.json` (título, slug, resumo para IA, SEO e textos sociais). O pacote também entra no banco editorial, então `fla10 publicacao list` e `fla10 publicacao registrar` funcionam nele.
+
+```bash
+# monta o pacote de uma versão já aprovada, sem interface
+.venv/bin/python -m fla10_agents publicacao importar \
+  exports/redacao-2026-11-10-1622 --versao 1
+```
+
+O comando exige `aprovada.json` com a mesma versão e o mesmo `conteudo_sha256`; texto alterado depois da aprovação é recusado. O slug sai do título, cortado em palavra inteira, e os textos sociais são derivados do lead — nada é inventado. O envio ao site continua manual.
+
 ## Estado
 Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; não há integração com OpenRouter nem modelos pagos. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 

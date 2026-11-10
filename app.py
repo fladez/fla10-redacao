@@ -7,6 +7,7 @@ Uso:
     /Users/rcorreas/miniconda3/envs/fla10/bin/streamlit run app.py
 """
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -19,7 +20,40 @@ from versoes import separar_versoes
 
 BASE = Path(__file__).resolve().parent
 PYTHON = Path(sys.executable)
+PYTHON_CLI = BASE / ".venv" / "bin" / "python"
 PASTA_SAIDAS = BASE / "exports"
+PASTA_PACOTES = PASTA_SAIDAS / "pacotes"
+BANCO_EDITORIAL = BASE / "data" / "editorial.db"
+
+
+def hash_versao(texto: str) -> str:
+    """Mesma regra de `publication_import.hash_versao`."""
+    return hashlib.sha256(texto.strip().encode("utf-8")).hexdigest()
+
+
+def montar_pacote(pasta: Path, versao: int) -> subprocess.CompletedProcess[str]:
+    """Chama a CLI que monta o pacote de CMS; não publica nada."""
+    python = PYTHON_CLI if PYTHON_CLI.is_file() else PYTHON
+    return subprocess.run(
+        [
+            str(python),
+            "-m",
+            "fla10_agents",
+            "publicacao",
+            "importar",
+            str(pasta),
+            "--versao",
+            str(versao),
+            "--output",
+            str(PASTA_PACOTES),
+            "--database",
+            str(BANCO_EDITORIAL),
+        ],
+        cwd=BASE,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 st.set_page_config(page_title="Redação FLA10", page_icon="🔴", layout="wide")
 
@@ -95,11 +129,13 @@ if gerar:
             format_func=lambda n: f"Versão {n}",
         )
         if st.button("Registrar aprovação local"):
+            corpo_aprovado = dict(versoes).get(escolhida, "")
             registro = {
                 "pasta": pasta.name,
                 "versao": escolhida,
                 "aprovada_em": datetime.now().isoformat(timespec="seconds"),
                 "pauta": pauta.strip(),
+                "conteudo_sha256": hash_versao(corpo_aprovado),
             }
             (pasta / "aprovada.json").write_text(
                 json.dumps(registro, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -108,6 +144,28 @@ if gerar:
                 f"Versão {escolhida} marcada como aprovada em {pasta.name}. "
                 "Nada foi publicado: o envio ao site continua manual."
             )
+
+            pacote = montar_pacote(pasta, escolhida)
+            if pacote.returncode != 0:
+                st.error("A aprovação foi salva, mas o pacote de CMS não foi gerado.")
+                st.code((pacote.stderr or pacote.stdout)[-3000:])
+            else:
+                dados = json.loads(pacote.stdout)
+                st.info(f"Pacote de CMS pronto em `{dados['output']}`.")
+                st.caption(
+                    f"Título: {dados['title']} · slug: {dados['slug']} · "
+                    f"status: {dados['status']}"
+                )
+                artigo = Path(dados["output"]) / "article.md"
+                if artigo.is_file():
+                    st.download_button(
+                        "Baixar article.md do pacote",
+                        artigo.read_text(encoding="utf-8"),
+                        file_name=f"{dados['slug']}.md",
+                        key=f"pacote-{dados['package_id']}",
+                    )
+                with st.expander("Detalhes do pacote"):
+                    st.code(pacote.stdout)
 
     with st.expander("Log do pipeline"):
         st.code(processo.stdout[-8000:])
