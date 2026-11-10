@@ -103,9 +103,9 @@ def buscar_noticias(consulta: str, limite: int = 8) -> list[str]:
     return [_formatar_item(item) for item in _buscar_itens(consulta, limite)]
 
 
-def coletar_apuracao(tema: str) -> tuple[str, list[str]]:
+def coletar_apuracao(tema: str, sobre_jogo: bool = True) -> tuple[str, list[str]]:
     """Junta notícias de várias consultas, sem repetir manchete, da mais nova à mais antiga."""
-    consultas = consultas_de_busca(tema)
+    consultas = consultas_de_busca(tema, sobre_jogo)
     itens: list[dict] = []
     vistos: set[str] = set()
     falhas: list[str] = []
@@ -201,13 +201,17 @@ else:
     jogo, erro_ficha = resultados.coletar_jogo()
     ficha = resultados.formatar(jogo) if jogo else ""
     prioridade = bool(jogo) and cita_jogo(tema_pesquisa, jogo)
+    if not prioridade:
+        ficha = ""
     if ficha:
         print("   " + ficha.replace("\n", " | ") + "\n")
+    elif jogo:
+        print("   ficha omitida: a pauta não é sobre esse jogo\n")
     else:
         print(f"   {erro_ficha}\n")
 
     print("🔎 Coletando notícias no Google News (sem chave de API)...")
-    fatos, falhas = coletar_apuracao(tema_pesquisa)
+    fatos, falhas = coletar_apuracao(tema_pesquisa, prioridade)
     if fatos:
         print(f"   {len(fatos.splitlines())} trechos coletados.\n")
     else:
@@ -242,8 +246,7 @@ else:
                 "use exatamente o placar, as equipes e a data dela e descarte qualquer "
                 "resultado divergente. "
                 if prioridade
-                else "A FICHA OFICIAL é apenas do último jogo do time masculino e pode não "
-                "ser o tema desta pauta: use-a só se a pauta tratar dessa partida. "
+                else ""
             )
             + "A lista 'Entraram em campo' mostra quem atuou, não a escalação titular: "
             "não a apresente como time titular nem invente posições."

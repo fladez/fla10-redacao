@@ -74,7 +74,7 @@ O `main.py` executa a redação completa com os 6 agentes do FLA10 (`Process.seq
 
 Fontes da apuração:
 
-- `resultados.py` — ficha oficial (rodada, data, placar, estádio) e súmula resumida (gols, assistências, cartões e quem entrou em campo) da API pública do Cartola FC (ge.globo), sem chave. Tem prioridade sobre as notícias em caso de divergência. A lista de quem entrou em campo não é a escalação titular.
+- `resultados.py` — ficha oficial (rodada, data, placar, estádio) e súmula resumida (gols, assistências, cartões e quem entrou em campo) da API pública do Cartola FC (ge.globo), sem chave. A ficha só entra quando a pauta cita o adversário ou pede resultado/placar; fora isso é omitida, junto com a consulta fixa de escalação, para não contaminar o texto.
 - RSS do Google News — manchetes e resumos recentes, coletados em Python.
 
 Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `completa.md`. A separação é feita por `versoes.py`, com fallback para títulos `## Versão` se o marcador faltar.

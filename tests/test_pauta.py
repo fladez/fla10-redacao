@@ -25,6 +25,13 @@ def test_consulta_prefixa_flamengo_quando_ausente():
     assert consultas[1] == "Flamengo final da Copa do Brasil"
 
 
+def test_pauta_fora_do_jogo_nao_busca_escalacao():
+    consultas = pauta.consultas_de_busca("Flamengo feminino na final", sobre_jogo=False)
+
+    assert "Flamengo escalação e declarações pós-jogo" not in consultas
+    assert consultas == ["Flamengo feminino na final"]
+
+
 def test_pauta_do_jogo_tem_prioridade():
     assert pauta.cita_jogo("Flamengo x Grêmio — destaques", JOGO)
     assert pauta.cita_jogo("Análise do último jogo do Mengão", JOGO)

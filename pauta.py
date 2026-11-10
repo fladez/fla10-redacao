@@ -3,12 +3,17 @@
 from typing import Any
 
 
-def consultas_de_busca(tema: str) -> list[str]:
-    """Consultas do Google News: o tema, o clube quando falta e o pós-jogo."""
+def consultas_de_busca(tema: str, sobre_jogo: bool = True) -> list[str]:
+    """Consultas do Google News: o tema, o clube quando falta e o pós-jogo.
+
+    A consulta fixa de escalação só entra quando a pauta é sobre uma partida;
+    fora disso ela traz notícias do último jogo e contamina o texto.
+    """
     consultas = [tema]
     if "flamengo" not in tema.lower():
         consultas.append(f"Flamengo {tema}")
-    consultas.append("Flamengo escalação e declarações pós-jogo")
+    if sobre_jogo:
+        consultas.append("Flamengo escalação e declarações pós-jogo")
     return consultas
 
 
