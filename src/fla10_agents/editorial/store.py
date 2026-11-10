@@ -11,11 +11,19 @@ from pathlib import Path
 from typing import Self
 from uuid import uuid4
 
-from fla10_agents.models import EditorialProposal, MonitoringSignal, ResearchDossier
+from fla10_agents.models import (
+    DraftArticle,
+    EditorialProposal,
+    MonitoringSignal,
+    PublicationPackage,
+    ResearchDossier,
+    ReviewReport,
+)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 BUSY_TIMEOUT_MS = 5000
 PROPOSAL_DECISIONS = ("awaiting_human", "approved", "rejected", "published")
+DRAFT_DECISIONS = ("awaiting_human", "approved", "rejected")
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +151,45 @@ class EditorialRepository:
                     skipped INTEGER NOT NULL DEFAULT 0,
                     error TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS drafts (
+                    draft_id TEXT PRIMARY KEY,
+                    proposal_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (proposal_id)
+                        REFERENCES editorial_proposals(proposal_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_drafts_proposal
+                    ON drafts(proposal_id);
+
+                CREATE TABLE IF NOT EXISTS draft_reviews (
+                    review_id TEXT PRIMARY KEY,
+                    draft_id TEXT NOT NULL,
+                    verdict TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    reviewed_at TEXT NOT NULL,
+                    FOREIGN KEY (draft_id) REFERENCES drafts(draft_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_reviews_draft
+                    ON draft_reviews(draft_id, reviewed_at);
+
+                CREATE TABLE IF NOT EXISTS publication_packages (
+                    package_id TEXT PRIMARY KEY,
+                    draft_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (draft_id) REFERENCES drafts(draft_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_packages_draft
+                    ON publication_packages(draft_id);
                 """
             )
 
@@ -352,6 +399,191 @@ class EditorialRepository:
             return None
 
         return ResearchDossier.model_validate_json(row["payload"])
+
+    # --- textos gerados e revisão -------------------------------------
+
+    def save_draft(self, draft: DraftArticle) -> None:
+        now = self._now()
+
+        with self.transaction():
+            self._connection.execute(
+                """
+                INSERT INTO drafts
+                    (draft_id, proposal_id, status, payload, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    draft.draft_id,
+                    draft.proposal_id,
+                    draft.editorial_decision,
+                    draft.model_dump_json(),
+                    now,
+                    now,
+                ),
+            )
+
+    def get_draft(self, draft_id: str) -> DraftArticle | None:
+        row = self._connection.execute(
+            "SELECT payload FROM drafts WHERE draft_id = ?",
+            (draft_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return DraftArticle.model_validate_json(row["payload"])
+
+    def list_drafts(
+        self,
+        proposal_id: str | None = None,
+        limit: int = 50,
+    ) -> list[DraftArticle]:
+        query = "SELECT payload FROM drafts"
+        parameters: list[object] = []
+
+        if proposal_id is not None:
+            query += " WHERE proposal_id = ?"
+            parameters.append(proposal_id)
+
+        query += " ORDER BY created_at DESC, draft_id LIMIT ?"
+        parameters.append(limit)
+
+        rows = self._connection.execute(query, parameters).fetchall()
+        return [DraftArticle.model_validate_json(row["payload"]) for row in rows]
+
+    def decide_draft(self, draft_id: str, decision: str) -> DraftArticle:
+        if decision not in DRAFT_DECISIONS:
+            raise ValueError("Decisão inválida. Use: " + ", ".join(DRAFT_DECISIONS))
+
+        draft = self.get_draft(draft_id)
+        if draft is None:
+            raise KeyError(f"Texto não encontrado: {draft_id}")
+
+        updated = draft.model_copy(update={"editorial_decision": decision})
+
+        with self.transaction():
+            self._connection.execute(
+                """
+                UPDATE drafts
+                SET payload = ?, status = ?, updated_at = ?
+                WHERE draft_id = ?
+                """,
+                (updated.model_dump_json(), decision, self._now(), draft_id),
+            )
+
+        return updated
+
+    def save_review(self, review: ReviewReport) -> None:
+        with self.transaction():
+            self._connection.execute(
+                """
+                INSERT INTO draft_reviews
+                    (review_id, draft_id, verdict, payload, reviewed_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    review.review_id,
+                    review.draft_id,
+                    review.verdict,
+                    review.model_dump_json(),
+                    review.reviewed_at.isoformat(),
+                ),
+            )
+
+    def get_latest_review(self, draft_id: str) -> ReviewReport | None:
+        row = self._connection.execute(
+            """
+            SELECT payload FROM draft_reviews
+            WHERE draft_id = ?
+            ORDER BY reviewed_at DESC, review_id
+            LIMIT 1
+            """,
+            (draft_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return ReviewReport.model_validate_json(row["payload"])
+
+    def list_reviews(self, draft_id: str) -> list[ReviewReport]:
+        rows = self._connection.execute(
+            """
+            SELECT payload FROM draft_reviews
+            WHERE draft_id = ?
+            ORDER BY reviewed_at DESC, review_id
+            """,
+            (draft_id,),
+        ).fetchall()
+
+        return [ReviewReport.model_validate_json(row["payload"]) for row in rows]
+
+    # --- pacotes de publicação ---------------------------------------
+
+    def save_package(self, package: PublicationPackage) -> None:
+        now = self._now()
+
+        with self.transaction():
+            self._connection.execute(
+                """
+                INSERT INTO publication_packages
+                    (package_id, draft_id, status, payload, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    package.package_id,
+                    package.draft_id,
+                    package.status,
+                    package.model_dump_json(),
+                    now,
+                    now,
+                ),
+            )
+
+    def update_package(self, package: PublicationPackage) -> None:
+        with self.transaction():
+            self._connection.execute(
+                """
+                UPDATE publication_packages
+                SET status = ?, payload = ?, updated_at = ?
+                WHERE package_id = ?
+                """,
+                (
+                    package.status,
+                    package.model_dump_json(),
+                    self._now(),
+                    package.package_id,
+                ),
+            )
+
+    def get_package(self, package_id: str) -> PublicationPackage | None:
+        row = self._connection.execute(
+            "SELECT payload FROM publication_packages WHERE package_id = ?",
+            (package_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return PublicationPackage.model_validate_json(row["payload"])
+
+    def list_packages(
+        self,
+        status: str | None = None,
+        limit: int = 50,
+    ) -> list[PublicationPackage]:
+        query = "SELECT payload FROM publication_packages"
+        parameters: list[object] = []
+
+        if status is not None:
+            query += " WHERE status = ?"
+            parameters.append(status)
+
+        query += " ORDER BY created_at DESC, package_id LIMIT ?"
+        parameters.append(limit)
+
+        rows = self._connection.execute(query, parameters).fetchall()
+        return [PublicationPackage.model_validate_json(row["payload"]) for row in rows]
 
     # --- matérias publicadas -----------------------------------------
 

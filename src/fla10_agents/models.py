@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -168,3 +169,87 @@ class ResearchDossier(BaseModel):
     @classmethod
     def validate_research_date(cls, value: datetime) -> datetime:
         return _require_aware_datetime(value)  # type: ignore[return-value]
+
+
+class SeoPackage(BaseModel):
+    title: str
+    meta_description: str
+    primary_keyword: str
+    secondary_keywords: list[str] = Field(default_factory=list)
+
+
+class DraftArticle(BaseModel):
+    draft_id: str = Field(default_factory=lambda: str(uuid4()))
+    proposal_id: str
+    format: str
+    title: str
+    subtitle: str
+    body_markdown: str
+    body_html: str
+    ai_summary: str | None = None
+    seo: SeoPackage
+    social_posts: list[str] = Field(default_factory=list)
+    sources: list[EvidenceSource] = Field(default_factory=list)
+    model: str
+    prompt_version: str = "writing-v1"
+    prompt_sha256: str | None = None
+    generation: dict[str, object] = Field(default_factory=dict)
+    editorial_decision: str = "awaiting_human"
+    created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def validate_draft_date(cls, value: datetime) -> datetime:
+        return _require_aware_datetime(value)  # type: ignore[return-value]
+
+
+class ReviewIssue(BaseModel):
+    severity: Literal["critico", "alto", "medio", "baixo"]
+    category: str
+    description: str
+    evidence: str | None = None
+
+
+class ReviewReport(BaseModel):
+    review_id: str = Field(default_factory=lambda: str(uuid4()))
+    draft_id: str
+    verdict: str
+    issues: list[ReviewIssue] = Field(default_factory=list)
+    checks: list[str] = Field(default_factory=list)
+    summary: str = ""
+    reviewer_model: str
+    prompt_version: str = "review-v1"
+    prompt_sha256: str | None = None
+    generation: dict[str, object] = Field(default_factory=dict)
+    reviewed_at: datetime
+
+    @field_validator("reviewed_at")
+    @classmethod
+    def validate_review_date(cls, value: datetime) -> datetime:
+        return _require_aware_datetime(value)  # type: ignore[return-value]
+
+
+class PublicationPackage(BaseModel):
+    package_id: str = Field(default_factory=lambda: str(uuid4()))
+    draft_id: str
+    format: str
+    title: str
+    subtitle: str
+    slug: str
+    body_html: str
+    body_markdown: str
+    ai_summary: str | None = None
+    seo: SeoPackage
+    social_posts: list[str] = Field(default_factory=list)
+    sources: list[EvidenceSource] = Field(default_factory=list)
+    status: str = "prepared"
+    created_at: datetime
+    exported_at: datetime | None = None
+    published_at: datetime | None = None
+    url: HttpUrl | None = None
+    confirmation: str | None = None
+
+    @field_validator("created_at", "exported_at", "published_at")
+    @classmethod
+    def validate_package_dates(cls, value: datetime | None) -> datetime | None:
+        return _require_aware_datetime(value)

@@ -63,7 +63,9 @@ cp .env.example .env
 
 Edite o arquivo `.env` e informe o token GitHub em `GITHUB_TOKEN`. Mantenha o restante como está, salvo necessidade explícita. O arquivo `.env` é ignorado pelo Git.
 
-Para executar o teste comparativo dos modelos, informe também a chave recém-gerada do OpenRouter em `OPENROUTER_API_KEY`. A chave deve ser criada em https://openrouter.ai/settings/keys e guardada somente no arquivo local `.env`. Não a cole no chat, não a inclua em capturas de tela e não a versione no Git.
+Para executar o teste comparativo dos modelos e a produção editorial, informe também a chave do OpenRouter em `OPENROUTER_API_KEY`. A chave deve ser criada em https://openrouter.ai/settings/keys e guardada somente no arquivo local `.env`. Não a cole no chat, não a inclua em capturas de tela e não a versione no Git.
+
+A produção usa `FLA10_WRITING_MODEL` (padrão provisório `openai/gpt-5.5`) e a revisão usa `FLA10_REVIEW_MODEL`; quando a segunda não está definida, a revisão usa o mesmo modelo da redação. Os IDs precisam existir no catálogo do OpenRouter e não há fallback silencioso para outro modelo.
 
 O módulo de avaliação usa o endpoint OpenRouter e os IDs documentados em `docs/11-protocolo-avaliacao-modelos.md`. Não é necessária uma chave direta da OpenAI para essa comparação. `OPENAI_API_KEY` permanece reservado a futuras integrações diretas.
 
@@ -109,7 +111,48 @@ O diretório `artifacts/` é ignorado pelo Git. Não enviar a chave de cegamento
 
 A chamada não permite fallback silencioso para outro modelo. Se um endpoint falhar, o comando informa o modelo e interrompe a execução; não substitui o modelo por outro.
 
-## 8. Segurança
+## 8. Produção, revisão e publicação assistida
+
+O fluxo editorial usa o mesmo `OPENROUTER_API_KEY`:
+
+```bash
+fla10 redacao gerar ID_DA_PROPOSTA
+fla10 redacao revisar ID_DO_TEXTO
+fla10 redacao list
+fla10 redacao mostrar ID_DO_TEXTO
+fla10 redacao aprovar ID_DO_TEXTO
+```
+
+Para revisar sem chamada de modelo:
+
+```bash
+fla10 redacao revisar ID_DO_TEXTO --deterministico
+```
+
+A geração exige pauta `approved` e dossiê com recomendação `pronto para redação`. O texto gerado fica em `awaiting_human` até a decisão do editor. A aprovação é recusada se a revisão mais recente for `bloqueado`.
+
+Depois da aprovação, prepare e exporte o pacote:
+
+```bash
+fla10 publicacao preparar ID_DO_TEXTO
+fla10 publicacao exportar ID_DO_PACOTE --output exports/
+fla10 publicacao list
+```
+
+A exportação grava `article.html`, `article.md`, `package.json` e `metadata.json` em `exports/PACKAGE_ID/`. Nada é enviado ao site.
+
+Somente depois de publicar manualmente, registre a confirmação:
+
+```bash
+fla10 publicacao registrar ID_DO_PACOTE \
+  --url "https://fla10.news/materia" \
+  --published-at "2026-11-10T18:00:00-03:00" \
+  --confirmar "Confirmado no painel do site"
+```
+
+O registro exige URL válida, data com fuso e confirmação não vazia. Ele também inclui o título em `published_articles`, alimentando a checagem de redundância. Sem esses dados, o pacote permanece `exported`.
+
+## 9. Segurança
 
 - Não versionar `.env`.
 - Não registrar credenciais em logs.

@@ -19,6 +19,7 @@ build/
 logs/
 .tmp/
 artifacts/
+exports/
 .DS_Store
 .idea/
 .vscode/

@@ -21,7 +21,7 @@ O sistema consulta as regras do Redacao-Fla10 em modo somente leitura. Não cria
 7. Desenvolvimento incremental, testável e reversível.
 
 ## MVP
-Calendário e Agenda, Monitoramento e Pautas, e Apuração e Verificação. O MVP identifica eventos e fatos novos, compara com a memória editorial, recomenda pautas e prepara dossiês verificáveis. Não redige matérias completas, não altera o vault e não publica.
+Calendário e Agenda, Monitoramento e Pautas, Apuração e Verificação, Produção, Revisão e preparação de publicação assistida. O sistema identifica eventos e fatos novos, compara com a memória editorial, recomenda pautas, prepara dossiês verificáveis, redige a partir de pauta aprovada e dossiê suficiente, revisa o texto de forma independente e monta o pacote de CMS. Aprovação e publicação continuam sob controle humano; nenhum conteúdo é enviado ao site automaticamente.
 
 ## Documentação
 - [Documento fundador](docs/01-documento-fundador.md)
@@ -61,7 +61,7 @@ O comando envia o mesmo prompt e o mesmo dossiê aos três modelos definidos no 
 A execução real ainda depende de configurar a chave e validar a primeira rodada. Consulte [Configuração local](docs/10-configuracao-local.md).
 
 ## Estado
-Fundação técnica, avaliação comparativa, calendário esportivo e Fase 1 do MVP (monitoramento, pautas e apuração) implementados. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação real dos modelos depende da configuração segura da chave OpenRouter. A redação completa e a publicação automática continuam fora do escopo: dependem de decisão de modelo e de um endpoint autorizado no site.
+Fundação técnica, avaliação comparativa, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação paga de modelos continua pendente de decisão do responsável; o modelo provisório de redação é `openai/gpt-5.5`. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 
 
 ## Calendário esportivo — operação local inicial
@@ -256,3 +256,66 @@ Esse registro alimenta a comparação de redundância. A data de publicação pr
 - Não publica, não envia e não agenda conteúdo externo.
 - A nota de redundância é uma triagem por sobreposição de termos; a decisão continua humana.
 - Sinais de monitoramento ainda são ingeridos por arquivo JSON; não há coletor de fontes nesta fase.
+
+## Produção, revisão e publicação assistida — Fases 2 e 3
+
+As fases 2 e 3 geram texto a partir de pauta aprovada e dossiê com recomendação `pronto para redação`, aplicam revisão independente e preparam o pacote de CMS. Nenhuma etapa publica sozinha.
+
+### Configuração do provedor
+
+- `OPENROUTER_API_KEY`: obrigatória para gerar e revisar com modelo.
+- `OPENROUTER_API_URL`: padrão `https://openrouter.ai/api/v1`.
+- `FLA10_WRITING_MODEL`: modelo de redação. Padrão provisório: `openai/gpt-5.5`.
+- `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
+
+A chamada não permite fallback silencioso: se o modelo configurado falhar, o comando interrompe. A chave nunca é exibida em mensagens de erro ou logs.
+
+### Fluxo completo
+
+```bash
+# 1. Aprovar a pauta (decisão humana já registrada na Fase 1)
+fla10 pautas approve ID_DA_PROPOSTA
+
+# 2. Gerar o texto
+fla10 redacao gerar ID_DA_PROPOSTA
+
+# 3. Revisar de forma independente
+fla10 redacao revisar ID_DO_TEXTO
+# ou, sem chamada de modelo:
+fla10 redacao revisar ID_DO_TEXTO --deterministico
+
+# 4. Consultar e decidir
+fla10 redacao list
+fla10 redacao mostrar ID_DO_TEXTO
+fla10 redacao aprovar ID_DO_TEXTO
+fla10 redacao rejeitar ID_DO_TEXTO
+
+# 5. Preparar e exportar o pacote local
+fla10 publicacao preparar ID_DO_TEXTO
+fla10 publicacao exportar ID_DO_PACOTE --output exports/
+
+# 6. Só após publicar manualmente no site, registrar a URL confirmada
+fla10 publicacao registrar ID_DO_PACOTE \
+  --url "https://fla10.news/materia" \
+  --published-at "2026-11-10T18:00:00-03:00" \
+  --confirmar "Confirmado no painel do site"
+```
+
+A geração exige pauta `approved` e dossiê `pronto para redação`. O texto nasce como `awaiting_human`; a aprovação é bloqueada enquanto a revisão mais recente for `bloqueado`. `ajustes_necessarios` e `pronto_para_avaliacao_humana` exigem leitura do editor, mas não impedem a decisão humana.
+
+A exportação cria uma subpasta por pacote com `article.html`, `article.md`, `package.json` e `metadata.json`. O registro de publicação grava também o título em `published_articles` para alimentar a checagem de redundância. Não há envio de conteúdo, chamada de CMS ou agendamento externo.
+
+### Vereditos da revisão
+
+- `bloqueado`: problema crítico; aprovação impedida.
+- `ajustes_necessarios`: problema alto ou médio que exige correção.
+- `pronto_para_avaliacao_humana`: sem achados que impeçam a leitura final.
+
+A revisão combina checagens determinísticas (campos obrigatórios, marcadores, URLs no corpo e checklist do formato) com análise por modelo. O revisor não reescreve o texto: aponta problemas e evidências.
+
+### Limites das fases 2 e 3
+
+- O modelo padrão é provisório até a avaliação comparativa ser executada.
+- A qualidade factual depende do dossiê; o sistema não busca fontes sozinho na geração.
+- A publicação externa continua manual: não existe endpoint autorizado no site.
+- O registro de publicação exige URL e confirmação verificável; sem isso, o pacote permanece `exported`.

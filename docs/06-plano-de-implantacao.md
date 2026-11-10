@@ -22,13 +22,20 @@ Fora do escopo: redação integral, publicação automática, alteração do Red
 5. **Concluído:** agente Calendário e Agenda, com identidade, merge por campo e histórico de execuções.
 6. **Concluído:** agente Monitoramento e Pautas, com ingestão de sinais, deduplicação e detecção de redundância.
 7. **Concluído:** agente Apuração e Verificação, com dossiê, lacunas, contradições e recomendação.
-8. **Parcial:** orquestração ponta a ponta coberta por testes. Falta validar a operação com casos reais e decidir os modelos da Fase 2.
+8. **Concluído:** orquestração ponta a ponta coberta por testes, com casos sintéticos e banco temporário.
+9. **Concluído:** produção, revisão independente e decisão humana (Fase 2), com provedor OpenRouter plugável e revisão determinística disponível.
+10. **Concluído:** pacote de CMS, exportação local e registro de publicação confirmada (Fase 3), sem envio externo.
+11. **Pendente:** executar a avaliação comparativa paga e validar o retrabalho com casos editoriais reais.
 
 ## Fase 2 — Produção e revisão
 Adicionar Produção e Revisão independente. Testar formatos Fla10, validar HTML e marcadores obrigatórios e medir retrabalho com casos reais.
 
+**Estado:** implementada em modo local. A produção usa OpenRouter com provedor plugável, lê os documentos canônicos do vault e só gera a partir de pauta `approved` e dossiê `pronto para redação`. A revisão combina checagens determinísticas e análise por modelo independente; a aprovação humana é bloqueada quando o parecer mais recente é `bloqueado`. O modelo padrão provisório é `openai/gpt-5.5`, configurável por `FLA10_WRITING_MODEL` e `FLA10_REVIEW_MODEL`. A avaliação comparativa paga ainda não foi executada.
+
 ## Fase 3 — SEO, distribuição e publicação assistida
 Adicionar metadados, adaptações de distribuição e preparação de CMS. Manter aprovação humana para toda ação pública.
+
+**Estado:** implementada como publicação assistida. O sistema monta pacote de CMS com título, subtítulo, HTML, Markdown, resumo para IA, pacote SEO, textos sociais e fontes; exporta `article.html`, `article.md`, `package.json` e `metadata.json` para uma pasta local; e só registra a matéria como publicada após URL válida, data com fuso e confirmação verificável. Não envia conteúdo ao site, não chama API de CMS e não agenda publicação externa.
 
 ## Fase 4 — Auditoria e autonomia progressiva
 Adicionar auditoria contínua e métricas. Aumentar autonomia somente com evidência de confiabilidade, aprovação e controles de reversão.
@@ -40,4 +47,4 @@ Requisitos testáveis; testes automatizados passando; fontes rastreáveis; incer
 Precisão de datas e fatos; proporção de afirmações com evidência; uso de fontes primárias; contradições detectadas; falsos positivos e duplicidade; erros críticos; retrabalho; tempo/custo por tarefa; falhas de integração e violações de permissão.
 
 ## Próxima etapa
-A Fase 1 está operacional localmente. A Fase 2 depende de duas decisões do responsável: provedor/modelo de linguagem com chave configurada e formato de entrega para revisão humana. A publicação continua fora do escopo até existir um endpoint autorizado no site.
+As fases 1, 2 e 3 estão operacionais localmente. A próxima decisão do responsável é executar ou não a avaliação paga de modelos prevista em `docs/11-protocolo-avaliacao-modelos.md`; até lá, `openai/gpt-5.5` permanece como padrão provisório. A publicação automática continua fora do escopo até existir um endpoint autorizado no site; por enquanto, o fluxo termina em exportação local e registro manual confirmado.

@@ -21,7 +21,26 @@ from fla10_agents.evaluation import ModelEvaluationError, run_report_test
 from fla10_agents.models import SportsEvent
 from fla10_agents.monitoring import SignalInputError, signals_from_payload
 from fla10_agents.pipeline import build_and_save_dossier, run_pauta_pipeline
+from fla10_agents.publication import (
+    PublicationError,
+    export_package,
+    package_summary,
+    prepare_package,
+    register_publication,
+)
 from fla10_agents.research import ResearchInputError, claims_from_payload
+from fla10_agents.writing import (
+    OpenRouterProvider,
+    ProviderError,
+    ReviewError,
+    WritingError,
+    decide_draft,
+    default_review_model,
+    default_writing_model,
+    generate_draft,
+    review_draft,
+)
+from fla10_agents.writing.context import WritingContextError
 
 RUN_ACTIONS = ("created", "updated", "unchanged", "identity_unresolved")
 
@@ -65,6 +84,25 @@ def _pauta_to_dict(pauta: Pauta) -> dict[str, object]:
 
 def _print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
+
+
+def build_llm_provider() -> OpenRouterProvider:
+    """Constrói o provedor real; testes substituem esta função."""
+    return OpenRouterProvider.from_env()
+
+
+def _parse_aware_datetime(value: str, label: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(
+            f"{label} inválida; use ISO 8601, por exemplo 2026-11-10T18:00:00-03:00."
+        ) from exc
+
+    if parsed.tzinfo is None:
+        raise ValueError(f"{label} precisa incluir fuso horário.")
+
+    return parsed
 
 
 
@@ -405,6 +443,167 @@ def pipeline_run(
 
 
 
+def redacao_gerar(
+    database_path: str,
+    proposal_id: str,
+    model: str,
+    max_tokens: int,
+    vault_root: str | None,
+) -> int:
+    """Gera um texto a partir de pauta aprovada e dossiê suficiente."""
+    provider = build_llm_provider()
+    draft = generate_draft(
+        database_path,
+        proposal_id,
+        provider,
+        model=model,
+        vault_root=Path(vault_root) if vault_root else None,
+        max_tokens=max_tokens,
+    )
+
+    _print_json({
+        "draft_id": draft.draft_id,
+        "proposal_id": draft.proposal_id,
+        "title": draft.title,
+        "model": draft.model,
+        "decision": draft.editorial_decision,
+    })
+    return 0
+
+
+def redacao_revisar(
+    database_path: str,
+    draft_id: str,
+    model: str,
+    deterministic_only: bool,
+    vault_root: str | None,
+) -> int:
+    """Revisa um texto de forma independente."""
+    provider = None if deterministic_only else build_llm_provider()
+    report = review_draft(
+        database_path,
+        draft_id,
+        provider,
+        model=model,
+        vault_root=Path(vault_root) if vault_root else None,
+    )
+
+    _print_json({
+        "review_id": report.review_id,
+        "draft_id": report.draft_id,
+        "verdict": report.verdict,
+        "reviewer_model": report.reviewer_model,
+        "summary": report.summary,
+        "issues": [
+            {
+                "severity": issue.severity,
+                "category": issue.category,
+                "description": issue.description,
+                "evidence": issue.evidence,
+            }
+            for issue in report.issues
+        ],
+    })
+    return 0
+
+
+def redacao_list(database_path: str, proposal_id: str | None, limit: int) -> int:
+    """Lista textos gerados e o parecer da revisão mais recente."""
+    with EditorialRepository(database_path) as store:
+        drafts = store.list_drafts(proposal_id=proposal_id, limit=limit)
+        items = []
+        for draft in drafts:
+            review = store.get_latest_review(draft.draft_id)
+            items.append({
+                "draft_id": draft.draft_id,
+                "proposal_id": draft.proposal_id,
+                "title": draft.title,
+                "format": draft.format,
+                "decision": draft.editorial_decision,
+                "review_verdict": review.verdict if review else None,
+                "created_at": draft.created_at.isoformat(),
+            })
+
+    _print_json(items)
+    return 0
+
+
+def redacao_mostrar(database_path: str, draft_id: str) -> int:
+    """Mostra o texto completo e a revisão mais recente."""
+    with EditorialRepository(database_path) as store:
+        draft = store.get_draft(draft_id)
+        if draft is None:
+            raise KeyError(f"Texto não encontrado: {draft_id}")
+        review = store.get_latest_review(draft_id)
+
+    _print_json({
+        "draft": draft.model_dump(mode="json"),
+        "review": review.model_dump(mode="json") if review else None,
+    })
+    return 0
+
+
+def redacao_decidir(database_path: str, draft_id: str, decision: str) -> int:
+    """Registra aprovação ou rejeição humana do texto."""
+    draft = decide_draft(database_path, draft_id, decision)
+    _print_json({
+        "draft_id": draft.draft_id,
+        "title": draft.title,
+        "decision": draft.editorial_decision,
+    })
+    return 0
+
+
+def publicacao_preparar(database_path: str, draft_id: str) -> int:
+    """Monta o pacote de CMS sem publicar."""
+    package = prepare_package(database_path, draft_id)
+    _print_json(package_summary(package))
+    return 0
+
+
+def publicacao_exportar(database_path: str, package_id: str, output: str) -> int:
+    """Exporta o pacote para uma pasta local."""
+    destination = export_package(database_path, package_id, output)
+    _print_json({
+        "output": str(destination),
+        "files": [
+            "article.html",
+            "article.md",
+            "package.json",
+            "metadata.json",
+        ],
+    })
+    return 0
+
+
+def publicacao_list(database_path: str, status: str | None, limit: int) -> int:
+    """Lista pacotes de publicação."""
+    with EditorialRepository(database_path) as store:
+        packages = store.list_packages(status=status, limit=limit)
+
+    _print_json([package_summary(package) for package in packages])
+    return 0
+
+
+def publicacao_registrar(
+    database_path: str,
+    package_id: str,
+    url: str,
+    published_at: str,
+    confirmation: str,
+) -> int:
+    """Registra uma publicação externa já confirmada; não publica nada."""
+    package = register_publication(
+        database_path,
+        package_id,
+        url=url,
+        published_at=_parse_aware_datetime(published_at, "Data de publicação"),
+        confirmation=confirmation,
+    )
+    _print_json(package_summary(package))
+    return 0
+
+
 def main() -> None:
     load_dotenv(find_dotenv(usecwd=True))
     parser = argparse.ArgumentParser(prog="fla10")
@@ -680,6 +879,187 @@ def main() -> None:
         help="Quantidade de títulos exibidos (padrão: 200).",
     )
 
+    redacao_parser = subparsers.add_parser(
+        "redacao",
+        help="Gera, revisa e decide textos a partir de pautas aprovadas.",
+    )
+    redacao_commands = redacao_parser.add_subparsers(
+        dest="redacao_command",
+        required=True,
+    )
+    redacao_gerar_parser = redacao_commands.add_parser(
+        "gerar",
+        help="Gera um texto com base em pauta aprovada e dossiê suficiente.",
+    )
+    redacao_gerar_parser.add_argument("proposal_id", help="Identificador da pauta.")
+    redacao_gerar_parser.add_argument(
+        "--model",
+        default=default_writing_model(),
+        help="Modelo OpenRouter (padrão: FLA10_WRITING_MODEL ou openai/gpt-5.5).",
+    )
+    redacao_gerar_parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=8000,
+        help="Limite de tokens de saída (padrão: 8000).",
+    )
+    redacao_gerar_parser.add_argument(
+        "--vault",
+        default=None,
+        help="Raiz do vault (padrão: EDITORIAL_VAULT_PATH ou ~/Documents/Redacao-Fla10).",
+    )
+    redacao_gerar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    redacao_revisar_parser = redacao_commands.add_parser(
+        "revisar",
+        help="Revisa um texto de forma independente.",
+    )
+    redacao_revisar_parser.add_argument("draft_id", help="Identificador do texto.")
+    redacao_revisar_parser.add_argument(
+        "--model",
+        default=default_review_model(),
+        help="Modelo revisor (padrão: FLA10_REVIEW_MODEL ou o modelo de redação).",
+    )
+    redacao_revisar_parser.add_argument(
+        "--deterministico",
+        action="store_true",
+        help="Executa apenas as checagens automáticas, sem chamar modelo.",
+    )
+    redacao_revisar_parser.add_argument(
+        "--vault",
+        default=None,
+        help="Raiz do vault (padrão: EDITORIAL_VAULT_PATH ou ~/Documents/Redacao-Fla10).",
+    )
+    redacao_revisar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    redacao_list_parser = redacao_commands.add_parser(
+        "list",
+        help="Lista textos gerados e o parecer mais recente.",
+    )
+    redacao_list_parser.add_argument(
+        "--proposal-id",
+        default=None,
+        help="Filtra por pauta.",
+    )
+    redacao_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Quantidade de textos exibidos (padrão: 50).",
+    )
+    redacao_list_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    redacao_mostrar_parser = redacao_commands.add_parser(
+        "mostrar",
+        help="Mostra o texto completo e a revisão mais recente.",
+    )
+    redacao_mostrar_parser.add_argument("draft_id", help="Identificador do texto.")
+    redacao_mostrar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    for name, help_text in (
+        ("aprovar", "Aprova um texto revisado."),
+        ("rejeitar", "Rejeita um texto."),
+    ):
+        decision_parser = redacao_commands.add_parser(name, help=help_text)
+        decision_parser.add_argument("draft_id", help="Identificador do texto.")
+        decision_parser.add_argument(
+            "--database",
+            default=default_editorial_database_path(),
+            help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+        )
+
+    publicacao_parser = subparsers.add_parser(
+        "publicacao",
+        help="Prepara, exporta e registra publicações confirmadas.",
+    )
+    publicacao_commands = publicacao_parser.add_subparsers(
+        dest="publicacao_command",
+        required=True,
+    )
+    publicacao_preparar_parser = publicacao_commands.add_parser(
+        "preparar",
+        help="Monta o pacote de CMS de um texto aprovado.",
+    )
+    publicacao_preparar_parser.add_argument("draft_id", help="Identificador do texto.")
+    publicacao_preparar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    publicacao_exportar_parser = publicacao_commands.add_parser(
+        "exportar",
+        help="Exporta o pacote para uma pasta local.",
+    )
+    publicacao_exportar_parser.add_argument("package_id", help="Identificador do pacote.")
+    publicacao_exportar_parser.add_argument(
+        "--output",
+        required=True,
+        help="Pasta de saída; cada pacote recebe uma subpasta própria.",
+    )
+    publicacao_exportar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    publicacao_list_parser = publicacao_commands.add_parser(
+        "list",
+        help="Lista pacotes de publicação.",
+    )
+    publicacao_list_parser.add_argument(
+        "--status",
+        choices=("prepared", "exported", "published"),
+        default=None,
+        help="Filtra pelo estado do pacote.",
+    )
+    publicacao_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Quantidade de pacotes exibidos (padrão: 50).",
+    )
+    publicacao_list_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+    publicacao_registrar_parser = publicacao_commands.add_parser(
+        "registrar",
+        help="Registra uma publicação externa já confirmada.",
+    )
+    publicacao_registrar_parser.add_argument("package_id", help="Identificador do pacote.")
+    publicacao_registrar_parser.add_argument(
+        "--url",
+        required=True,
+        help="URL pública da matéria publicada.",
+    )
+    publicacao_registrar_parser.add_argument(
+        "--published-at",
+        required=True,
+        help="Data ISO 8601 com fuso horário.",
+    )
+    publicacao_registrar_parser.add_argument(
+        "--confirmar",
+        required=True,
+        help="Evidência ou confirmação explícita de que a publicação ocorreu.",
+    )
+    publicacao_registrar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -737,6 +1117,58 @@ def main() -> None:
                 ))
             if args.publicacoes_command == "list":
                 raise SystemExit(publicacoes_list(args.database, args.limit))
+        if args.command == "redacao":
+            if args.redacao_command == "gerar":
+                raise SystemExit(redacao_gerar(
+                    args.database,
+                    args.proposal_id,
+                    args.model,
+                    args.max_tokens,
+                    args.vault,
+                ))
+            if args.redacao_command == "revisar":
+                raise SystemExit(redacao_revisar(
+                    args.database,
+                    args.draft_id,
+                    args.model,
+                    args.deterministico,
+                    args.vault,
+                ))
+            if args.redacao_command == "list":
+                raise SystemExit(redacao_list(
+                    args.database,
+                    args.proposal_id,
+                    args.limit,
+                ))
+            if args.redacao_command == "mostrar":
+                raise SystemExit(redacao_mostrar(args.database, args.draft_id))
+            if args.redacao_command == "aprovar":
+                raise SystemExit(redacao_decidir(args.database, args.draft_id, "approved"))
+            if args.redacao_command == "rejeitar":
+                raise SystemExit(redacao_decidir(args.database, args.draft_id, "rejected"))
+        if args.command == "publicacao":
+            if args.publicacao_command == "preparar":
+                raise SystemExit(publicacao_preparar(args.database, args.draft_id))
+            if args.publicacao_command == "exportar":
+                raise SystemExit(publicacao_exportar(
+                    args.database,
+                    args.package_id,
+                    args.output,
+                ))
+            if args.publicacao_command == "list":
+                raise SystemExit(publicacao_list(
+                    args.database,
+                    args.status,
+                    args.limit,
+                ))
+            if args.publicacao_command == "registrar":
+                raise SystemExit(publicacao_registrar(
+                    args.database,
+                    args.package_id,
+                    args.url,
+                    args.published_at,
+                    args.confirmar,
+                ))
         if args.command == "run-report-test":
             output_dir = run_report_test(resume_run_id=args.resume)
             print("Teste concluído. Arquivos salvos localmente em:")
@@ -755,6 +1187,11 @@ def main() -> None:
         VaultError,
         SignalInputError,
         ResearchInputError,
+        ProviderError,
+        WritingError,
+        WritingContextError,
+        ReviewError,
+        PublicationError,
     ) as exc:
         print(f"Erro: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
