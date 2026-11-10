@@ -1,6 +1,6 @@
 """Componentes do agente de agenda esportiva."""
 
-from fla10_agents.calendar.agent import (
+from fla10_agents.calendar.cbf_source import CBFCalendarSource, CBFSourceError, parse_cbf_table_text\nfrom fla10_agents.calendar.agent import (
     CalendarAgent,
     EventUpdateResult,
     UpdateAction,
@@ -17,7 +17,7 @@ from fla10_agents.calendar.repository import (
 )
 
 __all__ = [
-    "CalendarAgent",
+    "CBFCalendarSource",\n    "CBFSourceError",\n    "parse_cbf_table_text",\n    "CalendarAgent",
     "CalendarRepository",
     "EventDifference",
     "EventIdentityConflictError",
