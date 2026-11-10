@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import urllib.parse
@@ -27,7 +28,24 @@ MODELO = OpenCodeLLM()
 USAR_REACT = os.getenv("FLA10_USAR_REACT", "0").strip() == "1"
 
 # 4. Tema da pauta e coleta determinística de fatos.
-tema_pesquisa = "Último jogo do Flamengo no Brasileirão (resultado, gols, destaques e declarações)"
+PAUTA_PADRAO = "Último jogo do Flamengo no Brasileirão (resultado, gols, destaques e declarações)"
+
+
+def ler_pauta(argv: list[str] | None = None) -> str:
+    """Pauta pelo argumento posicional, por FLA10_PAUTA ou pelo padrão."""
+    parser = argparse.ArgumentParser(
+        description="Redação automatizada do FLA10 News (6 agentes, sequencial)."
+    )
+    parser.add_argument(
+        "pauta",
+        nargs="?",
+        help="Tema da matéria. Sem argumento, usa FLA10_PAUTA ou a pauta padrão.",
+    )
+    args = parser.parse_args(argv)
+    return (args.pauta or os.getenv("FLA10_PAUTA", "")).strip() or PAUTA_PADRAO
+
+
+tema_pesquisa = ler_pauta()
 
 GOOGLE_NEWS_RSS = (
     "https://news.google.com/rss/search?q={consulta}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
@@ -86,11 +104,10 @@ def buscar_noticias(consulta: str, limite: int = 8) -> list[str]:
 
 def coletar_apuracao(tema: str) -> tuple[str, list[str]]:
     """Junta notícias de várias consultas, sem repetir manchete, da mais nova à mais antiga."""
-    consultas = [
-        tema,
-        "Flamengo resultado último jogo",
-        "Flamengo escalação e declarações pós-jogo",
-    ]
+    consultas = [tema]
+    if "flamengo" not in tema.lower():
+        consultas.append(f"Flamengo {tema}")
+    consultas.append("Flamengo escalação e declarações pós-jogo")
     itens: list[dict] = []
     vistos: set[str] = set()
     falhas: list[str] = []
@@ -276,6 +293,7 @@ tarefa_revisao = Task(
 
 # 7. Montagem e Execução da Crew
 print("🚀 Iniciando a Redação Automatizada do FLA10 News...\n")
+print(f"📝 Pauta: {tema_pesquisa}\n")
 print("🔍 Fase 1: Apurando os fatos na web (isso pode levar ~30 segundos)...\n")
 
 redacao_fl10 = Crew(

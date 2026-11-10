@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 agents = ["openai-agents"]
+ui = ["streamlit>=1.30"]
 dev = [
   "pytest>=8",
   "ruff>=0.6",

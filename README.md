@@ -80,10 +80,22 @@ Fontes da apuração:
 Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `completa.md`. A separação é feita por `versoes.py`, com fallback para títulos `## Versão` se o marcador faltar.
 
 ```bash
+# pauta padrão (último jogo)
 /Users/rcorreas/miniconda3/envs/fla10/bin/python main.py
+
+# pauta específica
+/Users/rcorreas/miniconda3/envs/fla10/bin/python main.py "Flamengo x Palmeiras — destaques"
 ```
 
 `FLA10_USAR_REACT=1` faz o Apurador chamar `busca_web` no laço ReAct em vez da coleta determinística.
+
+## Interface local (Streamlit)
+
+```bash
+/Users/rcorreas/miniconda3/envs/fla10/bin/streamlit run app.py
+```
+
+Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. A aprovação é registrada localmente em `aprovada.json` na pasta da execução; nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
 
 ## Estado
 Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; não há integração com OpenRouter nem modelos pagos. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
