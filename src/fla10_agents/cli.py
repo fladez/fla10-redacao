@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from fla10_agents.calendar import CalendarAgent, CalendarRepository
+from fla10_agents.calendar.cbf_source import CBFCalendarSource
 from fla10_agents.config import Settings
 from fla10_agents.editorial.github_reader import EditorialSourceError, GitHubEditorialReader
 from fla10_agents.evaluation import ModelEvaluationError, run_report_test
@@ -64,6 +65,32 @@ def calendar_process(input_path: str, database_path: str) -> int:
     return 0
 
 
+def calendar_sync_cbf(url: str, season: int, database_path: str) -> int:
+    """Baixa uma tabela detalhada da CBF e atualiza os jogos do Flamengo."""
+    with CBFCalendarSource() as source:
+        observations = source.fetch_events(url, season=season)
+
+    results = []
+    with CalendarRepository(database_path) as repository:
+        agent = CalendarAgent(repository)
+        for event, external_id in observations:
+            result = agent.process_observation(
+                event,
+                provider="cbf",
+                external_id=external_id,
+            )
+            results.append({
+                "external_id": external_id,
+                "action": result.action.value,
+                "event_id": result.event_id,
+                "identity_status": result.identity_status.value,
+                "reason": result.reason,
+            })
+
+    print(json.dumps(results, ensure_ascii=False, indent=2))
+    return 0
+
+
 def calendar_list(database_path: str) -> int:
     """Lista os eventos registrados no calendário local."""
     with CalendarRepository(database_path) as repository:
@@ -98,6 +125,13 @@ def main() -> None:
         default="data/calendar.db",
         help="Banco SQLite local (padrão: data/calendar.db).",
     )
+    sync_parser = calendar_commands.add_parser(
+        "sync-cbf",
+        help="Importa jogos do Flamengo de uma tabela detalhada oficial da CBF em PDF.",
+    )
+    sync_parser.add_argument("--url", required=True, help="URL do PDF oficial da tabela detalhada.")
+    sync_parser.add_argument("--season", required=True, type=int, help="Ano da temporada.")
+    sync_parser.add_argument("--database", default="data/calendar.db", help="Banco SQLite local.")
     list_parser = calendar_commands.add_parser(
         "list",
         help="Lista os eventos já registrados.",
