@@ -54,7 +54,7 @@ def test_external_id_resolves_existing_event(tmp_path: Path) -> None:
         assert result.event == event
 
 
-def test_unique_match_links_new_external_id(tmp_path: Path) -> None:
+def test_unique_match_does_not_link_external_id_during_resolution(tmp_path: Path) -> None:
     with CalendarRepository(tmp_path / "calendar.db") as repository:
         event = make_event("evt-001")
         repository.save_event(event)
@@ -67,7 +67,7 @@ def test_unique_match_links_new_external_id(tmp_path: Path) -> None:
 
         assert result.status == IdentityResolutionStatus.MATCHED
         assert result.event == event
-        assert repository.get_event_by_external_id("flamengo", "partida-456") == event
+        assert repository.get_event_by_external_id("flamengo", "partida-456") is None
 
 
 def test_no_candidate_returns_new_without_creating_event(
