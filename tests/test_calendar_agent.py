@@ -302,3 +302,61 @@ def test_reobserved_source_updates_verification_without_duplicating_entry(
         assert result.action == UpdateAction.UNCHANGED
         assert len(stored.sources) == 1
         assert stored.sources[0].accessed_at == datetime(2026, 11, 10, 9, 0, tzinfo=UTC)
+
+
+def test_observation_without_date_does_not_downgrade_confirmed_event(
+    tmp_path: Path,
+) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        agent = CalendarAgent(repository)
+        confirmed = make_event()
+        agent.process_observation(confirmed)
+
+        without_date = make_event().model_copy(
+            update={
+                "starts_at_local": None,
+                "event_status": EventStatus.PROVISIONAL,
+            }
+        )
+        result = agent.process_observation(without_date)
+
+        stored = repository.get_event("evt-001")
+        assert result.action == UpdateAction.UNCHANGED
+        assert stored.starts_at_local == datetime(2026, 11, 10, 19, 0)
+        assert stored.event_status == EventStatus.CONFIRMED
+
+
+def test_provisional_event_is_confirmed_when_date_is_published(
+    tmp_path: Path,
+) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        agent = CalendarAgent(repository)
+        provisional = make_event().model_copy(
+            update={
+                "starts_at_local": None,
+                "event_status": EventStatus.PROVISIONAL,
+            }
+        )
+        agent.process_observation(
+            provisional,
+            provider="cbf",
+            external_id="2026:371",
+        )
+
+        confirmed = make_event().model_copy(
+            update={
+                "event_status": EventStatus.CONFIRMED,
+                "starts_at_local": datetime(2026, 12, 2, 21, 30),
+            }
+        )
+        result = agent.process_observation(
+            confirmed,
+            provider="cbf",
+            external_id="2026:371",
+        )
+
+        stored = repository.get_event("evt-001")
+        assert result.action == UpdateAction.UPDATED
+        assert stored.event_status == EventStatus.CONFIRMED
+        assert stored.starts_at_local == datetime(2026, 12, 2, 21, 30)
+        assert repository.get_event_by_external_id("cbf", "2026:371") == stored

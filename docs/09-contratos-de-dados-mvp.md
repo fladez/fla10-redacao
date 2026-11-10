@@ -14,7 +14,7 @@ Este documento define os objetos mínimos de intercâmbio. É um contrato lógic
   "stage": "round or phase",
   "home_team": "team",
   "away_team": "team",
-  "starts_at_local": "YYYY-MM-DDTHH:MM:SS",
+  "starts_at_local": "YYYY-MM-DDTHH:MM:SS (null quando a data não foi definida)",
   "timezone": "America/Sao_Paulo",
   "venue": "venue or null",
   "event_status": "confirmed",
@@ -31,6 +31,8 @@ Este documento define os objetos mínimos de intercâmbio. É um contrato lógic
 ```
 
 Campos desconhecidos devem ser nulos ou ausentes, nunca preenchidos por inferência. `event_status` aceita inicialmente: `confirmed`, `provisional`, `postponed`, `cancelled`, `conflicting`.
+
+`starts_at_local` pode ser `null` quando a competição ainda não marcou data e hora. Nesse caso o evento é `provisional`; a data nunca é estimada. Evento `confirmed` exige data e hora locais, e uma observação sem data não rebaixa um evento já confirmado.
 
 ## 2. Proposta de pauta
 

@@ -35,6 +35,12 @@ def merge_observation(
         for field in _PRESERVED_WHEN_MISSING
         if getattr(observed, field) is None and getattr(previous, field) is not None
     }
+
+    if observed.starts_at_local is None and previous.starts_at_local is not None:
+        # Uma fonte sem data não pode rebaixar um jogo já confirmado.
+        updates["starts_at_local"] = previous.starts_at_local
+        updates["event_status"] = previous.event_status
+
     updates["event_id"] = previous.event_id
     updates["sources"] = _merge_sources(previous.sources, observed.sources)
 

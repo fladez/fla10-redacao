@@ -120,6 +120,10 @@ Nesta primeira integração, o importador cobre somente jogos do Flamengo na tab
 
 O identificador externo é prefixado pela temporada (`2026:368`), o que evita colisão entre anos. A importação roda em uma única transação: se um jogo falhar no meio do processo, nada é gravado. Jogos recusados por conflito de identidade aparecem no resultado e fazem o comando terminar com código 1.
 
+Os documentos oficiais ficam em [Tabelas da Série A](https://www.cbf.com.br/futebol-brasileiro/tabelas/campeonato-brasileiro/serie-a/2026?documento=Tabela%20Detalhada). Rodadas ainda sem data marcada entram como `provisional`, com `starts_at_local` nulo; o horário nunca é estimado. O campo `venue` traz estádio, cidade e UF como publicados na tabela.
+
+Uma tabela real de 09/11/2026, com 11 páginas, foi lida de ponta a ponta: 38 jogos do Flamengo, 36 confirmados e 2 sem data, sem duplicar eventos na segunda execução.
+
 Consultar o histórico de importações:
 
 ```bash

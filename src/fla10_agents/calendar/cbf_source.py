@@ -28,11 +28,15 @@ _UFS = [
     "SC", "SP", "SE", "TO",
 ]
 _UF = re.compile(r"\b(" + "|".join(_UFS) + r")\b")
-_ROW = re.compile(
-    r"^\s*(\d{3})\s+(\d{1,2})[ªº]?\s+(\d{2}/\d{2})\s+"
-    r"\w+\s+(\d{2}:\d{2})\s+(.+?)\s+x\s+(.+?)\s*$",
-    re.IGNORECASE,
+_CODE_AND_REST = re.compile(r"^\s*(\d{3})\s+(.+?)\s*$")
+_ROUND = re.compile(r"\d{1,2}[ªº]?")
+_DATE = re.compile(r"\d{2}/\d{2}")
+_TIME = re.compile(r"\d{2}:\d{2}")
+_WEEKDAY = re.compile(r"\w{3}")
+_SCORED = re.compile(
+    r"^(?P<home>.+?)\s+(?P<home_goals>\d+)\s*x\s+(?P<away_goals>\d+)\s+(?P<away>.+)$"
 )
+_UNSCORED = re.compile(r"^(?P<home>.+?)\s+x\s+(?P<away>.+)$")
 
 
 def _split_team_and_remainder(value: str) -> tuple[str, str]:
@@ -40,6 +44,57 @@ def _split_team_and_remainder(value: str) -> tuple[str, str]:
     if match is None:
         raise CBFSourceError(f"Não foi possível identificar a UF na linha: {value}")
     return value[: match.end()].strip(), value[match.end() :].strip()
+
+
+def _split_fixture(rest: str) -> tuple[str, str]:
+    """Separa mandante e visitante, com ou sem placar no meio."""
+    scored = _SCORED.match(rest)
+    if scored is not None:
+        return scored["home"].strip(), scored["away"].strip()
+
+    unscored = _UNSCORED.match(rest)
+    if unscored is None:
+        raise CBFSourceError(f"Não foi possível separar os times na linha: {rest}")
+
+    return unscored["home"].strip(), unscored["away"].strip()
+
+
+def _parse_row(line: str) -> tuple[str, str | None, str | None, str | None, str] | None:
+    """Extrai código, rodada, data/hora e o trecho com os dois times.
+
+    A tabela real varia: algumas linhas trazem rodada e data, outras só a
+    rodada, e as rodadas finais ainda não têm data marcada.
+    """
+    match = _CODE_AND_REST.match(line)
+    if match is None:
+        return None
+
+    code, rest = match.groups()
+    tokens = rest.split()
+
+    round_number: str | None = None
+    if tokens and _ROUND.fullmatch(tokens[0]):
+        round_number = tokens.pop(0).rstrip("ªº")
+
+    date_text: str | None = None
+    if tokens and _DATE.fullmatch(tokens[0]):
+        date_text = tokens.pop(0)
+        if tokens and _WEEKDAY.fullmatch(tokens[0]):
+            tokens.pop(0)
+
+    time_text: str | None = None
+    if tokens and _TIME.fullmatch(tokens[0]):
+        time_text = tokens.pop(0)
+
+    if not tokens:
+        return None
+
+    return code, round_number, date_text, time_text, " ".join(tokens)
+
+
+def _remove_trailing_numbers(value: str) -> str:
+    """Remove anotações numéricas de transmissão ao fim da linha."""
+    return re.sub(r"\s+(?:\d+\s*)+$", "", value).strip()
 
 
 def parse_cbf_table_text(
@@ -65,16 +120,15 @@ def parse_cbf_table_text(
     results: list[tuple[SportsEvent, str]] = []
 
     for line in content.splitlines():
-        match = _ROW.match(line.strip())
-        if match is None:
+        row = _parse_row(line.strip())
+        if row is None:
             continue
 
-        external_id, round_number, date_text, time_text, home_raw, away_raw = (
-            match.groups()
-        )
+        external_code, round_number, date_text, time_text, rest = row
+        home_raw, away_raw = _split_fixture(rest)
         home_team, _ = _split_team_and_remainder(home_raw)
         away_team, venue = _split_team_and_remainder(away_raw)
-        venue = re.sub(r"\s+(?:\d+\s*)+$", "", venue).strip()
+        venue = _remove_trailing_numbers(venue)
 
         home_name = re.sub(
             r"\s+(?:" + "|".join(_UFS) + r")$", "", home_team
@@ -85,26 +139,32 @@ def parse_cbf_table_text(
         if "flamengo" not in (home_name + " " + away_name).casefold():
             continue
 
-        day, month = (int(part) for part in date_text.split("/"))
-        starts_at = datetime(
-            season, month, day, int(time_text[:2]), int(time_text[3:])
-        )
+        starts_at = None
+        event_status = EventStatus.PROVISIONAL
+
+        if date_text and time_text:
+            day, month = (int(part) for part in date_text.split("/"))
+            starts_at = datetime(
+                season, month, day, int(time_text[:2]), int(time_text[3:])
+            )
+            event_status = EventStatus.CONFIRMED
+
         event = SportsEvent(
             sport="futebol",
             category="profissional masculino",
             competition="Campeonato Brasileiro Série A",
             season=str(season),
-            stage=f"rodada {round_number}",
+            stage=f"rodada {round_number}" if round_number else None,
             home_team=home_name,
             away_team=away_name,
             starts_at_local=starts_at,
             timezone="America/Sao_Paulo",
             venue=venue or None,
-            event_status=EventStatus.CONFIRMED,
+            event_status=event_status,
             sources=[source],
             last_verified_at=verified_at,
         )
-        results.append((event, f"{season}:{external_id}"))
+        results.append((event, f"{season}:{external_code}"))
 
     if not results:
         raise CBFSourceError(

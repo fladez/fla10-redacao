@@ -79,3 +79,44 @@ def test_oversized_pdf_is_rejected(monkeypatch) -> None:
         pytest.raises(CBFSourceError, match="excede o limite"),
     ):
         source.fetch_events(PDF_URL, season=2026)
+
+
+def test_parse_real_table_variants_with_score_and_missing_date() -> None:
+    text = """
+003 1ª 28/01 qua 21:30 São Paulo SP 2 x 1 Flamengo RJ Morumbis São Paulo SP 1     6 7
+074 8 20:30 Corinthians SP 1 x 1 Flamengo RJ Neo Química Arena São Paulo SP  2   5 7
+371 38ª 21:30 Flamengo RJ  x  Chapecoense SC Maracanã Rio de Janeiro RJ
+"""
+    events = parse_cbf_table_text(text, season=2026, source_url=PDF_URL)
+
+    assert [external_id for _, external_id in events] == [
+        "2026:003",
+        "2026:074",
+        "2026:371",
+    ]
+
+    scored, _ = events[0]
+    assert (scored.home_team, scored.away_team) == ("São Paulo", "Flamengo")
+    assert scored.starts_at_local.isoformat() == "2026-01-28T21:30:00"
+    assert scored.venue == "Morumbis São Paulo SP"
+
+    no_date, _ = events[1]
+    assert no_date.stage == "rodada 8"
+    assert no_date.starts_at_local is None
+    assert no_date.event_status.value == "provisional"
+
+    future, _ = events[2]
+    assert (future.home_team, future.away_team) == ("Flamengo", "Chapecoense")
+    assert future.starts_at_local is None
+    assert future.stage == "rodada 38"
+
+
+def test_parse_line_without_round_keeps_stage_empty() -> None:
+    text = "236 22/08 sáb 20:30 Cruzeiro MG 2 x 1 Flamengo RJ Mineirão Belo Horizonte MG"
+
+    events = parse_cbf_table_text(text, season=2026, source_url=PDF_URL)
+
+    event, external_id = events[0]
+    assert external_id == "2026:236"
+    assert event.stage is None
+    assert event.starts_at_local.isoformat() == "2026-08-22T20:30:00"

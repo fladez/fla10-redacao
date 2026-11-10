@@ -5,7 +5,7 @@ from enum import StrEnum
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 
 def _require_aware_datetime(value: datetime | None) -> datetime | None:
@@ -56,7 +56,7 @@ class SportsEvent(BaseModel):
     stage: str | None = None
     home_team: str
     away_team: str
-    starts_at_local: datetime
+    starts_at_local: datetime | None = None
     timezone: str
     venue: str | None = None
     event_status: EventStatus
@@ -65,12 +65,21 @@ class SportsEvent(BaseModel):
 
     @field_validator("starts_at_local")
     @classmethod
-    def validate_local_start(cls, value: datetime) -> datetime:
-        if value.tzinfo is not None:
+    def validate_local_start(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is not None:
             raise ValueError(
                 "starts_at_local deve ser horário local sem offset; informe o fuso em timezone."
             )
         return value
+
+    @model_validator(mode="after")
+    def validate_confirmed_start(self) -> "SportsEvent":
+        if self.event_status == EventStatus.CONFIRMED and self.starts_at_local is None:
+            raise ValueError(
+                "Evento confirmado exige data e hora locais (starts_at_local). "
+                "Sem data definida, use o status provisional."
+            )
+        return self
 
     @field_validator("timezone")
     @classmethod

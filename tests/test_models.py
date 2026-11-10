@@ -48,3 +48,21 @@ def test_event_requires_timezone_on_verification_timestamp() -> None:
     data["last_verified_at"] = "2026-11-03T18:00:00"
     with pytest.raises(ValidationError):
         SportsEvent.model_validate(data)
+
+
+def test_provisional_event_accepts_missing_local_start() -> None:
+    data = valid_event()
+    data.pop("starts_at_local")
+    data["event_status"] = EventStatus.PROVISIONAL
+
+    event = SportsEvent.model_validate(data)
+
+    assert event.starts_at_local is None
+
+
+def test_confirmed_event_requires_local_start() -> None:
+    data = valid_event()
+    data.pop("starts_at_local")
+
+    with pytest.raises(ValidationError, match="starts_at_local"):
+        SportsEvent.model_validate(data)
