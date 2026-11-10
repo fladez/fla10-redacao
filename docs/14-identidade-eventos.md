@@ -28,6 +28,13 @@ A combinação `(provider, external_id)` deve ser única.
 Uma identificação externa já associada a um evento não pode ser
 silenciosamente transferida para outro.
 
+Quando a fonte reutiliza o mesmo código entre temporadas — caso da tabela
+detalhada da CBF —, o `external_id` é prefixado pela temporada no formato
+`temporada:código` (exemplo: `2026:368`). O prefixo evita que o código de
+um jogo antigo seja confundido com o de outro jogo na temporada seguinte;
+a importação de uma nova tabela atualiza o evento já vinculado em vez de
+criar um duplicado.
+
 ## 4. Reconciliação de eventos
 
 A resolução deve obedecer à seguinte prioridade:

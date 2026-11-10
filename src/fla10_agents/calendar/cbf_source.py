@@ -8,9 +8,14 @@ from io import BytesIO
 from typing import Self
 
 import httpx
+from pydantic import HttpUrl
 from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 
 from fla10_agents.models import EventStatus, EvidenceSource, SportsEvent
+from fla10_agents.net import get_with_retries
+
+MAX_PDF_BYTES = 25 * 1024 * 1024
 
 
 class CBFSourceError(RuntimeError):
@@ -47,7 +52,7 @@ def parse_cbf_table_text(
     """Extrai somente partidas do Flamengo, preservando o código oficial do jogo."""
     verified_at = accessed_at or datetime.now(UTC)
     source = EvidenceSource(
-        url=source_url,
+        url=HttpUrl(source_url),
         source_type="documento oficial de competição",
         author_or_institution="Confederação Brasileira de Futebol",
         accessed_at=verified_at,
@@ -128,14 +133,24 @@ class CBFCalendarSource:
 
     def fetch_events(self, url: str, *, season: int) -> list[tuple[SportsEvent, str]]:
         try:
-            response = self._client.get(
+            response = get_with_retries(
+                self._client,
                 url,
                 headers={"User-Agent": "Fla10-Agents/0.1 (+calendar importer)"},
             )
             response.raise_for_status()
+
+            if len(response.content) > MAX_PDF_BYTES:
+                raise CBFSourceError(
+                    "O PDF da CBF excede o limite de "
+                    f"{MAX_PDF_BYTES // (1024 * 1024)} MB e não foi processado."
+                )
+
             reader = PdfReader(BytesIO(response.content))
             content = "\n".join(page.extract_text() or "" for page in reader.pages)
-        except (httpx.HTTPError, OSError, ValueError) as exc:
+        except CBFSourceError:
+            raise
+        except (httpx.HTTPError, OSError, ValueError, PyPdfError) as exc:
             raise CBFSourceError(
                 f"Falha ao baixar ou ler o PDF oficial da CBF: {exc}"
             ) from exc

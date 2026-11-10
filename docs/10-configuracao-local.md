@@ -38,6 +38,21 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
+Se a instalação editável não tiver efeito — alguns interpretadores ignoram
+arquivos `.pth` dentro de diretórios ocultos, como `.venv` —, use uma das
+duas alternativas:
+
+```bash
+# instalação normal; repita após cada alteração no código
+pip install ".[dev]"
+
+# execução direta do código-fonte, sem reinstalar
+PYTHONPATH=src python -m fla10_agents calendar list
+```
+
+O comando `fla10` só passa a refletir o código novo depois da reinstalação;
+`python -m fla10_agents` executa sempre o conteúdo atual de `src/`.
+
 ## 4. Configurar ambiente
 
 Copie o arquivo de exemplo:
@@ -57,9 +72,12 @@ O módulo de avaliação usa o endpoint OpenRouter e os IDs documentados em `doc
 ```bash
 pytest
 ruff check .
+mypy src
 ```
 
 Os testes automatizados não fazem chamadas pagas ao OpenRouter e não exigem uma chave válida.
+
+O banco local do calendário fica em `data/calendar.db` na raiz do projeto. Para apontar para outro arquivo, use `--database` ou defina a variável `FLA10_DATABASE` no ambiente. O banco é criado automaticamente na primeira execução, com versão de schema registrada em `PRAGMA user_version`; a abertura migra estruturas antigas e recusa bancos de versão mais nova.
 
 ## 6. Verificar acesso real ao repositório editorial
 

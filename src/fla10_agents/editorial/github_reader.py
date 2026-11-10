@@ -11,6 +11,7 @@ import httpx
 
 from fla10_agents.config import Settings
 from fla10_agents.editorial.context_map import BOOTSTRAP_FILES, TASK_DOCUMENTS
+from fla10_agents.net import get_with_retries
 
 
 class EditorialSourceError(RuntimeError):
@@ -78,16 +79,23 @@ class GitHubEditorialReader:
     def branch(self) -> str:
         return self._settings.editorial_branch
 
-    def _get_json(self, endpoint: str, params: dict[str, str] | None = None) -> dict:
+    def _get_json(self, endpoint: str, params: dict[str, str] | None = None) -> dict[str, object]:
         url = f"{self._settings.github_api_url}/{endpoint.lstrip('/')}"
         try:
-            response = self._client.get(url, params=params)
+            response = get_with_retries(self._client, url, params=params)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise EditorialSourceError(
                 f"Falha ao consultar a fonte editorial no GitHub ({endpoint}): {exc}"
             ) from exc
+
+        if not isinstance(data, dict):
+            raise EditorialSourceError(
+                f"O GitHub retornou um documento inesperado ({endpoint})."
+            )
+
+        return data
 
     def head_commit(self) -> str:
         owner, name = self.repository.split("/", maxsplit=1)
@@ -112,8 +120,12 @@ class GitHubEditorialReader:
         if data.get("type") != "file":
             raise EditorialSourceError(f"O caminho não é um arquivo: {path}")
 
-        encoded_content = data.get("content", "")
-        if data.get("encoding") != "base64" or not encoded_content:
+        encoded_content = data.get("content")
+        if (
+            data.get("encoding") != "base64"
+            or not isinstance(encoded_content, str)
+            or not encoded_content
+        ):
             raise EditorialSourceError(
                 f"GitHub não forneceu conteúdo base64 legível para {path}. "
                 "O arquivo pode exigir leitura pela API Git Blobs."

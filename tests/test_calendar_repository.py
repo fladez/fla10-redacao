@@ -1,9 +1,11 @@
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from fla10_agents.calendar.repository import (
+    SCHEMA_VERSION,
     CalendarRepository,
     EventIdentityConflictError,
 )
@@ -170,3 +172,112 @@ def test_audit_timestamp_updates_without_creating_event_version(
         assert repository.save_event(rechecked) is False
         assert repository.get_event("evt-001") == rechecked
         assert len(repository.event_history("evt-001")) == 1
+
+def test_transaction_rolls_back_every_write(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        with (
+            pytest.raises(RuntimeError, match="interrompe"),
+            repository.transaction(),
+        ):
+            repository.save_event(make_event())
+            repository.link_external_id("cbf", "2026:1", "evt-001")
+            raise RuntimeError("interrompe a importação")
+
+        assert repository.list_events() == []
+        assert repository.get_event_by_external_id("cbf", "2026:1") is None
+
+
+def test_file_database_uses_wal_and_busy_timeout(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        journal_mode = repository._connection.execute("PRAGMA journal_mode").fetchone()[0]
+        busy_timeout = repository._connection.execute("PRAGMA busy_timeout").fetchone()[0]
+
+    assert journal_mode.lower() == "wal"
+    assert busy_timeout > 0
+
+
+def test_schema_version_is_recorded(tmp_path: Path) -> None:
+    database = tmp_path / "calendar.db"
+
+    with CalendarRepository(database) as repository:
+        assert repository.schema_version == SCHEMA_VERSION
+
+    with CalendarRepository(database) as repository:
+        assert repository.schema_version == SCHEMA_VERSION
+
+
+def test_legacy_database_receives_identity_key_on_open(tmp_path: Path) -> None:
+    database = tmp_path / "calendar.db"
+    event = make_event()
+
+    connection = sqlite3.connect(database)
+    connection.executescript(
+        """
+        CREATE TABLE sports_events (
+            event_id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        """
+    )
+    connection.execute(
+        "INSERT INTO sports_events VALUES (?, ?, ?, ?)",
+        (event.event_id, event.model_dump_json(), "2026-11-09T12:00:00+00:00",
+         "2026-11-09T12:00:00+00:00"),
+    )
+    connection.commit()
+    connection.close()
+
+    with CalendarRepository(database) as repository:
+        assert repository.get_event("evt-001") == event
+        resolution = repository.resolve_event_identity(event)
+
+    assert resolution.status.value == "matched"
+
+
+def test_newer_schema_is_rejected(tmp_path: Path) -> None:
+    database = tmp_path / "calendar.db"
+
+    connection = sqlite3.connect(database)
+    connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION + 1}")
+    connection.close()
+
+    with pytest.raises(RuntimeError, match="mais novo"):
+        CalendarRepository(database)
+
+
+def test_provider_is_normalized_before_linking(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        event = make_event()
+        repository.save_event(event)
+
+        repository.link_external_id(" CBF ", "2026:1", "evt-001")
+
+        assert repository.get_event_by_external_id("cbf", "2026:1") == event
+        assert repository.get_event_by_external_id("CBF", " 2026:1 ") == event
+
+
+def test_run_registry_records_start_and_finish(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        run_id = repository.start_run("CBF", "https://cbf.example/tabela.pdf")
+
+        running = repository.list_runs()
+        assert running[0]["run_id"] == run_id
+        assert running[0]["status"] == "running"
+        assert running[0]["provider"] == "cbf"
+
+        repository.finish_run(
+            run_id,
+            "completed",
+            created=3,
+            updated=1,
+            unchanged=2,
+        )
+
+        finished = repository.list_runs(limit=5)
+        assert finished[0]["status"] == "completed"
+        assert finished[0]["created"] == 3
+        assert finished[0]["updated"] == 1
+        assert finished[0]["unchanged"] == 2
+        assert finished[0]["finished_at"] is not None

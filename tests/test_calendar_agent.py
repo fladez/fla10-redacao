@@ -6,7 +6,7 @@ from fla10_agents.calendar import (
     CalendarRepository,
     UpdateAction,
 )
-from fla10_agents.models import EventStatus, SportsEvent
+from fla10_agents.models import EventStatus, EvidenceSource, SportsEvent
 
 
 def make_event(
@@ -228,3 +228,77 @@ def test_internal_id_collision_does_not_overwrite_another_event(
         assert result.reason is not None
         assert repository.get_event("evt-001") == original
         assert len(repository.event_history("evt-001")) == 1
+
+
+def make_source(
+    url: str,
+    accessed_at: datetime = datetime(2026, 11, 9, 12, tzinfo=UTC),
+) -> EvidenceSource:
+    return EvidenceSource(
+        url=url,
+        source_type="documento oficial",
+        accessed_at=accessed_at,
+    )
+
+
+def test_partial_observation_preserves_known_fields_and_accumulates_sources(
+    tmp_path: Path,
+) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        agent = CalendarAgent(repository)
+        original = make_event().model_copy(
+            update={
+                "stage": "rodada 33",
+                "sources": [make_source("https://fonte-a.example/jogo")],
+            }
+        )
+        agent.process_observation(original)
+
+        partial = make_event().model_copy(
+            update={
+                "stage": None,
+                "venue": None,
+                "starts_at_local": datetime(2026, 11, 11, 20, 0),
+                "sources": [make_source("https://fonte-b.example/jogo")],
+            }
+        )
+        result = agent.process_observation(partial)
+
+        stored = repository.get_event("evt-001")
+        assert result.action == UpdateAction.UPDATED
+        assert stored.stage == "rodada 33"
+        assert stored.venue == "Maracanã"
+        assert stored.starts_at_local == datetime(2026, 11, 11, 20, 0)
+        assert [str(source.url) for source in stored.sources] == [
+            "https://fonte-a.example/jogo",
+            "https://fonte-b.example/jogo",
+        ]
+
+
+def test_reobserved_source_updates_verification_without_duplicating_entry(
+    tmp_path: Path,
+) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        agent = CalendarAgent(repository)
+        agent.process_observation(
+            make_event().model_copy(
+                update={"sources": [make_source("https://fonte-a.example/jogo")]}
+            )
+        )
+
+        rechecked = make_event().model_copy(
+            update={
+                "sources": [
+                    make_source(
+                        "https://fonte-a.example/jogo",
+                        accessed_at=datetime(2026, 11, 10, 9, 0, tzinfo=UTC),
+                    )
+                ]
+            }
+        )
+        result = agent.process_observation(rechecked)
+
+        stored = repository.get_event("evt-001")
+        assert result.action == UpdateAction.UNCHANGED
+        assert len(stored.sources) == 1
+        assert stored.sources[0].accessed_at == datetime(2026, 11, 10, 9, 0, tzinfo=UTC)

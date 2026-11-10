@@ -275,3 +275,20 @@ def test_explicit_legacy_event_id_survives_serialization() -> None:
 
     assert restored.event_id == "legacy-event-001"
     assert restored == original
+
+
+def test_identity_ignores_case_accents_and_extra_spaces(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        original = make_event("evt-001", home_team="São Paulo", away_team="Flamengo")
+        repository.save_event(original)
+
+        observation = make_event(
+            home_team="  sao   paulo ",
+            away_team="flamengo",
+        )
+
+        result = repository.resolve_event_identity(observation)
+
+    assert result.status == IdentityResolutionStatus.MATCHED
+    assert result.event is not None
+    assert result.event.event_id == "evt-001"

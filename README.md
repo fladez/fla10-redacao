@@ -61,7 +61,7 @@ O comando envia o mesmo prompt e o mesmo dossiê aos três modelos definidos no 
 A execução real ainda depende de configurar a chave e validar a primeira rodada. Consulte [Configuração local](docs/10-configuracao-local.md).
 
 ## Estado
-Fundação técnica e módulo inicial de avaliação comparativa implementados. Lint e testes anteriores aprovados em Python 3.11 e 3.12; a nova implementação de avaliação aguarda execução da CI. A comparação real dos modelos depende da configuração segura da chave OpenRouter. Os agentes editoriais completos, parser de pautas e publicação automática ainda não estão implementados.
+Fundação técnica, avaliação comparativa e importação de calendário implementadas. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação real dos modelos depende da configuração segura da chave OpenRouter. Os agentes editoriais completos, o parser de pautas e a publicação automática ainda não estão implementados.
 
 
 ## Calendário esportivo — operação local inicial
@@ -104,5 +104,30 @@ Consultar os eventos registrados:
 fla10 calendar list
 ```
 
-O comando não busca fontes na internet nem inventa dados ausentes. O arquivo deve conter informações já apuradas; cada execução preserva o histórico de alterações. O banco padrão fica em `data/calendar.db` e pode ser alterado com `--database`.
-\n### Importação de jogos pela tabela oficial da CBF\n\nPara competições cobertas pela CBF, o calendário pode importar partidas do Flamengo diretamente de um PDF oficial de tabela detalhada. O importador preserva o número de referência do jogo como identificador externo e registra o endereço do documento como fonte de evidência.\n\nComando:\n\n    fla10 calendar sync-cbf --url "URL_DO_PDF_OFICIAL_DA_CBF" --season 2026\n\nA URL deve apontar para o PDF publicado pela CBF (por exemplo, o anexo "Tabela Detalhada - Brasileiro Série A 2026"). A cada nova tabela ou retificação, execute novamente o comando com a URL atualizada. O agente identifica jogos já importados pelo código oficial e atualiza alterações sem duplicar eventos.\n\nNesta primeira integração, o importador cobre somente jogos do Flamengo na tabela detalhada do Campeonato Brasileiro Série A. Não importa outras equipes, competições ou modalidades. Se o PDF não puder ser interpretado ou não contiver jogos do Flamengo, a execução falha sem gravar eventos.
+O comando não busca fontes na internet nem inventa dados ausentes. O arquivo deve conter informações já apuradas; cada execução preserva o histórico de alterações. Uma observação recusada por conflito de identidade não altera o banco e faz o comando terminar com código 1. O banco padrão fica em `data/calendar.db` e pode ser alterado com `--database`.### Importação de jogos pela tabela oficial da CBF
+
+Para competições cobertas pela CBF, o calendário pode importar partidas do Flamengo diretamente de um PDF oficial de tabela detalhada. O importador preserva o número de referência do jogo como identificador externo e registra o endereço do documento como fonte de evidência.
+
+Comando:
+
+```bash
+fla10 calendar sync-cbf --url "URL_DO_PDF_OFICIAL_DA_CBF" --season 2026
+```
+
+A URL deve apontar para o PDF publicado pela CBF (por exemplo, o anexo "Tabela Detalhada - Brasileiro Série A 2026"). A cada nova tabela ou retificação, execute novamente o comando com a URL atualizada. O agente identifica jogos já importados pelo código oficial e atualiza alterações sem duplicar eventos.
+
+Nesta primeira integração, o importador cobre somente jogos do Flamengo na tabela detalhada do Campeonato Brasileiro Série A. Não importa outras equipes, competições ou modalidades. Se o PDF não puder ser interpretado ou não contiver jogos do Flamengo, a execução falha sem gravar eventos.
+
+O identificador externo é prefixado pela temporada (`2026:368`), o que evita colisão entre anos. A importação roda em uma única transação: se um jogo falhar no meio do processo, nada é gravado. Jogos recusados por conflito de identidade aparecem no resultado e fazem o comando terminar com código 1.
+
+Consultar o histórico de importações:
+
+```bash
+fla10 calendar runs --limit 10
+```
+
+Cada execução registra provedor, URL do PDF, início, fim, status e a contagem de eventos criados, atualizados, inalterados e recusados.
+
+O banco padrão é `data/calendar.db` na raiz do projeto, independentemente da pasta em que o comando é executado. Para usar outro arquivo, informe `--database` ou defina `FLA10_DATABASE`.
+
+O banco usa WAL e timeout de bloqueio, o que permite leitura simultânea por outros processos. O schema tem versão (`PRAGMA user_version`); abrir um banco criado por uma versão mais nova falha com mensagem explícita.

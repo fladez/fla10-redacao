@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from fla10_agents.calendar.comparator import EventDifference, compare_events
+from fla10_agents.calendar.merge import merge_observation
 from fla10_agents.calendar.repository import (
     CalendarRepository,
     IdentityResolutionStatus,
@@ -93,7 +94,7 @@ class CalendarAgent:
         if previous is None:
             raise RuntimeError("A resolução MATCHED não retornou o evento correspondente.")
 
-        canonical_event = event.model_copy(update={"event_id": previous.event_id})
+        canonical_event = merge_observation(previous, event)
         differences = tuple(compare_events(previous, canonical_event))
 
         self.repository.save_event_and_link_external_id(
