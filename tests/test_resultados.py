@@ -100,3 +100,47 @@ def test_coletar_devolve_erro_quando_nao_ha_jogo():
 def test_nome_desconhecido_usa_slug():
     clubes = {"999": {"nome": "XYZ", "url_editoria": "https://ge.globo.com/sp/futebol/times/novo-horizonte/"}}
     assert resultados._nome_do_clube(clubes, 999) == "Novo Horizonte"
+
+
+def test_scouts_agregam_gols_assistencias_cartoes_e_ignoram_tecnico():
+    dados = {
+        "atletas": {
+            "1": {"clube_id": 262, "apelido": "Pedro", "posicao_id": 5, "entrou_em_campo": True,
+                  "scout": {"G": 2}},
+            "2": {"clube_id": 262, "apelido": "Lino", "posicao_id": 5, "entrou_em_campo": True,
+                  "scout": {"G": 1, "A": 1}},
+            "3": {"clube_id": 264, "apelido": "Zag", "posicao_id": 3, "entrou_em_campo": True,
+                  "scout": {"CA": 1}},
+            "4": {"clube_id": 262, "apelido": "Técnico", "posicao_id": 6, "entrou_em_campo": True,
+                  "scout": {"V": 1}},
+            "5": {"clube_id": 262, "apelido": "Reserva", "posicao_id": 5, "entrou_em_campo": False,
+                  "scout": {}},
+        }
+    }
+
+    scouts = resultados.buscar_scouts(34, lambda _url: dados)
+
+    assert scouts[262]["gols"] == [("Pedro", 2), ("Lino", 1)]
+    assert scouts[262]["assistencias"] == [("Lino", 1)]
+    assert scouts[262]["cartoes"] == []
+    assert "Técnico" not in scouts[262]["entraram"]
+    assert "Reserva" not in scouts[262]["entraram"]
+    assert scouts[264]["cartoes"] == ["Zag (amarelo)"]
+
+
+def test_formatar_inclui_detalhes_da_sumula():
+    jogo = {
+        "rodada": 34,
+        "quando": "04/11/2026 19:30",
+        "mandante": "Flamengo",
+        "visitante": "Grêmio",
+        "gols_mandante": 3,
+        "gols_visitante": 1,
+        "estadio": "Maracanã",
+        "detalhes": ["Gols do Flamengo: Pedro (2), Samuel Lino"],
+    }
+
+    texto = resultados.formatar(jogo)
+
+    assert texto.startswith("Rodada 34 — 04/11/2026 19:30\nFlamengo 3 x 1 Grêmio")
+    assert texto.endswith("Gols do Flamengo: Pedro (2), Samuel Lino")

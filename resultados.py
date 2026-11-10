@@ -15,6 +15,7 @@ API_CARTOLA = "https://api.cartolafc.globo.com"
 FLAMENGO_ID = 262
 TIMEOUT_SEGUNDOS = 20
 RODADAS_ATRAS = 6
+POSICAO_TECNICO = 6
 USER_AGENT = "Fla10-Agents/0.1 (+apuracao)"
 
 # A API devolve abreviações como "FLA" e "GRE"; estes são os nomes usados no site.
@@ -68,6 +69,43 @@ def _data_legivel(texto: str) -> str:
         return texto or "data desconhecida"
 
 
+def buscar_scouts(
+    rodada: int,
+    fetcher: Fetcher = _json,
+) -> dict[int, dict[str, Any]]:
+    """Gols, assistências, cartões e quem entrou em campo, por clube, na rodada."""
+    dados = fetcher(f"{API_CARTOLA}/atletas/pontuados/{rodada}")
+    resumo: dict[int, dict[str, Any]] = {}
+
+    for atleta in (dados.get("atletas") or {}).values():
+        if atleta.get("posicao_id") == POSICAO_TECNICO:
+            continue
+        clube = atleta.get("clube_id")
+        if clube is None:
+            continue
+        scout = atleta.get("scout") or {}
+        nome = atleta.get("apelido") or "jogador sem nome"
+        item = resumo.setdefault(clube, {"gols": [], "assistencias": [], "cartoes": [], "entraram": []})
+
+        if scout.get("G"):
+            item["gols"].append((nome, int(scout["G"])))
+        if scout.get("A"):
+            item["assistencias"].append((nome, int(scout["A"])))
+        if scout.get("CA"):
+            item["cartoes"].append(f"{nome} (amarelo)")
+        if scout.get("CV"):
+            item["cartoes"].append(f"{nome} (vermelho)")
+        if atleta.get("entrou_em_campo"):
+            item["entraram"].append(nome)
+
+    return resumo
+
+
+def _lista_gols(itens: list[tuple[str, int]]) -> str:
+    partes = [nome if gols == 1 else f"{nome} ({gols})" for nome, gols in itens]
+    return ", ".join(partes)
+
+
 def buscar_ultimo_jogo(
     fetcher: Fetcher = _json,
     flamengo_id: int = FLAMENGO_ID,
@@ -89,7 +127,7 @@ def buscar_ultimo_jogo(
                 continue
 
             clubes = fetcher(f"{API_CARTOLA}/clubes")
-            return {
+            jogo = {
                 "rodada": rodada,
                 "quando": _data_legivel(partida.get("partida_data", "")),
                 "mandante": _nome_do_clube(clubes, int(mandante)),
@@ -99,18 +137,52 @@ def buscar_ultimo_jogo(
                 "estadio": partida.get("local") or "não informado",
                 "posicao_mandante": partida.get("clube_casa_posicao"),
                 "posicao_visitante": partida.get("clube_visitante_posicao"),
+                "detalhes": [],
             }
+            try:
+                scouts = buscar_scouts(rodada, fetcher)
+            except Exception:  # noqa: BLE001 - súmula extra é opcional
+                scouts = {}
+            jogo["detalhes"] = _detalhes(scouts, int(mandante), int(visitante),
+                                         jogo["mandante"], jogo["visitante"])
+            return jogo
     return None
+
+
+def _detalhes(
+    scouts: dict[int, dict[str, Any]],
+    clube_mandante: int,
+    clube_visitante: int,
+    nome_mandante: str,
+    nome_visitante: str,
+) -> list[str]:
+    linhas: list[str] = []
+    for clube_id, nome in ((clube_mandante, nome_mandante), (clube_visitante, nome_visitante)):
+        item = scouts.get(clube_id) or {}
+        if item.get("gols"):
+            linhas.append(f"Gols do {nome}: {_lista_gols(item['gols'])}")
+        if item.get("assistencias"):
+            linhas.append(f"Assistências do {nome}: {_lista_gols(item['assistencias'])}")
+        if item.get("cartoes"):
+            linhas.append(f"Cartões do {nome}: {', '.join(item['cartoes'])}")
+        entraram = item.get("entraram") or []
+        if entraram:
+            linhas.append(f"Entraram em campo pelo {nome}: {', '.join(entraram)}")
+    return linhas
 
 
 def formatar(jogo: dict[str, Any]) -> str:
     """Transforma o jogo em um bloco curto para entrar no prompt de apuração."""
-    return (
-        f"Rodada {jogo['rodada']} — {jogo['quando']}\n"
-        f"{jogo['mandante']} {jogo['gols_mandante']} x {jogo['gols_visitante']} "
-        f"{jogo['visitante']}\n"
-        f"Estádio: {jogo['estadio']}"
-    )
+    linhas = [
+        f"Rodada {jogo['rodada']} — {jogo['quando']}",
+        (
+            f"{jogo['mandante']} {jogo['gols_mandante']} x {jogo['gols_visitante']} "
+            f"{jogo['visitante']}"
+        ),
+        f"Estádio: {jogo['estadio']}",
+    ]
+    linhas.extend(jogo.get("detalhes") or [])
+    return "\n".join(linhas)
 
 
 def coletar(fetcher: Fetcher = _json) -> tuple[str, str]:

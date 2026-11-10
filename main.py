@@ -221,7 +221,9 @@ else:
             "Indique a data e a fonte de cada informação. Se algum campo não aparecer "
             "no material, escreva 'não encontrado' em vez de supor.\n\n"
             "A FICHA OFICIAL tem prioridade sobre as notícias: use exatamente o placar, "
-            "as equipes e a data dela e descarte qualquer resultado divergente."
+            "as equipes e a data dela e descarte qualquer resultado divergente. "
+            "A lista 'Entraram em campo' mostra quem atuou, não a escalação titular: "
+            "não a apresente como time titular nem invente posições."
         )
     else:
         descricao_apuracao = (
