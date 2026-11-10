@@ -64,6 +64,27 @@ Variáveis:
 - `FLA10_WRITING_MODEL`: modelo de redação. Padrão: `opencode/deepseek-v4.1-flash-free`.
 - `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
 
+## Pipeline CrewAI (main.py)
+
+O `main.py` executa a redação completa com os 6 agentes do FLA10 (`Process.sequential`):
+
+1. **Apurador** — recebe a ficha oficial do último jogo e as notícias coletadas; não usa ferramentas por padrão.
+2. **Repórter de Plantão, Analista Tático, Cronista e Comunicador da Nação** — quatro versões a partir da apuração.
+3. **Revisor** — corrige e marca cada versão com `<!-- VERSAO:n -->`.
+
+Fontes da apuração:
+
+- `resultados.py` — ficha oficial (rodada, data, placar, estádio) da API pública do Cartola FC (ge.globo), sem chave. Tem prioridade sobre as notícias em caso de divergência.
+- RSS do Google News — manchetes e resumos recentes, coletados em Python.
+
+Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `completa.md`. A separação é feita por `versoes.py`, com fallback para títulos `## Versão` se o marcador faltar.
+
+```bash
+/Users/rcorreas/miniconda3/envs/fla10/bin/python main.py
+```
+
+`FLA10_USAR_REACT=1` faz o Apurador chamar `busca_web` no laço ReAct em vez da coleta determinística.
+
 ## Estado
 Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; não há integração com OpenRouter nem modelos pagos. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 

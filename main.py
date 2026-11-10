@@ -10,7 +10,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai.tools import tool
 from dotenv import load_dotenv
 
+import resultados
 from opencode_llm import OpenCodeLLM
+from versoes import salvar_versoes, separar_versoes
 
 # 1. Carregar variáveis de ambiente
 load_dotenv()
@@ -180,27 +182,52 @@ if USAR_REACT:
         "Declarações pós-jogo e Contexto na tabela."
     )
 else:
+    print("🔎 Coletando resultado oficial (Cartola/ge.globo)...")
+    ficha, erro_ficha = resultados.coletar()
+    if ficha:
+        print("   " + ficha.replace("\n", " | ") + "\n")
+    else:
+        print(f"   {erro_ficha}\n")
+
     print("🔎 Coletando notícias no Google News (sem chave de API)...")
     fatos, falhas = coletar_apuracao(tema_pesquisa)
     if fatos:
         print(f"   {len(fatos.splitlines())} trechos coletados.\n")
-        descricao_apuracao = (
-            "Os resultados de busca abaixo já foram coletados automaticamente. "
-            "NÃO chame ferramentas e NÃO invente dados.\n\n"
-            "--- MATERIAL COLETADO (início) ---\n"
-            f"{fatos}\n"
-            "--- MATERIAL COLETADO (fim) ---\n\n"
-            "Com base SOMENTE nesse material, monte um relatório estruturado com: "
-            "Placar, Gols, Destaques individuais, Declarações pós-jogo e Contexto na tabela. "
-            "Indique a data e a fonte de cada informação. Se algum campo não aparecer "
-            "no material, escreva 'não encontrado' em vez de supor."
-        )
     else:
         detalhe = (" Falhas: " + " | ".join(falhas)) if falhas else ""
         print(f"   Nenhuma notícia encontrada.{detalhe}\n")
+
+    blocos = []
+    if ficha:
+        blocos.append(
+            "--- FICHA OFICIAL DO ÚLTIMO JOGO (início) ---\n"
+            f"{ficha}\n"
+            "--- FICHA OFICIAL DO ÚLTIMO JOGO (fim) ---"
+        )
+    if fatos:
+        blocos.append(
+            "--- NOTÍCIAS COLETADAS (início) ---\n"
+            f"{fatos}\n"
+            "--- NOTÍCIAS COLETADAS (fim) ---"
+        )
+
+    if blocos:
         descricao_apuracao = (
-            "A coleta automática não retornou notícias. Informe isso explicitamente e "
-            "NÃO invente placar, gols, escalações, declarações ou estatísticas."
+            "O material abaixo já foi coletado automaticamente. "
+            "NÃO chame ferramentas e NÃO invente dados.\n\n"
+            + "\n\n".join(blocos)
+            + "\n\nCom base SOMENTE nesse material, monte um relatório estruturado com: "
+            "Placar, Gols, Destaques individuais, Declarações pós-jogo e Contexto na tabela. "
+            "Indique a data e a fonte de cada informação. Se algum campo não aparecer "
+            "no material, escreva 'não encontrado' em vez de supor.\n\n"
+            "A FICHA OFICIAL tem prioridade sobre as notícias: use exatamente o placar, "
+            "as equipes e a data dela e descarte qualquer resultado divergente."
+        )
+    else:
+        descricao_apuracao = (
+            "A coleta automática não retornou notícias nem resultado oficial. "
+            "Informe isso explicitamente e NÃO invente placar, gols, escalações, "
+            "declarações ou estatísticas."
         )
 
 tarefa_apuracao = Task(
@@ -224,10 +251,26 @@ tarefas_redacao = [
 ]
 
 tarefa_revisao = Task(
-    description="Pegue TODAS as 4 versões de matérias geradas pelos redatores. Revise cada uma delas, corrigindo eventuais erros de português e garantindo que o estilo solicitado foi respeitado. Formate a saída final de forma organizada, com separadores claros (---) entre cada versão.",
+    description=(
+        "Pegue TODAS as 4 versões de matérias geradas pelos redatores. Revise cada uma "
+        "delas, corrigindo eventuais erros de português e garantindo que o estilo "
+        "solicitado foi respeitado. Mantenha o resultado fiel ao relatório de apuração: "
+        "não acrescente placar, gols ou declarações que não estejam nele.\n\n"
+        "Formato obrigatório de saída: antes de cada versão escreva, sozinha na linha, "
+        "uma marcação exatamente assim: <!-- VERSAO:1 --> e assim por diante até 4, na "
+        "ordem em que as versões foram geradas (1 notícia, 2 análise tática, 3 crônica, "
+        "4 popular). Não use '---' como separador entre versões nem dentro dos textos; "
+        "para separar seções dentro de um texto use '###'."
+    ),
     agent=agentes["revisor"],
-    expected_output="Um documento Markdown único e bem formatado contendo as 4 versões revisadas da matéria, prontas para publicação no FLA10 News."
+    expected_output=(
+        "Um documento Markdown com 4 versões revisadas, cada uma precedida por "
+        "<!-- VERSAO:n -->, prontas para publicação no FLA10 News."
+    )
 )
+
+
+
 
 # 7. Montagem e Execução da Crew
 print("🚀 Iniciando a Redação Automatizada do FLA10 News...\n")
@@ -247,3 +290,14 @@ print("✅ PROCESSO CONCLUÍDO COM SUCESSO!")
 print("📰 Aqui estão as matérias prontas para sua aprovação:\n")
 print("="*70)
 print(resultado.raw)
+
+versoes = separar_versoes(resultado.raw)
+if len(versoes) == 4:
+    print(f"\n✅ 4 versões identificadas: {', '.join(str(n) for n, _ in versoes)}")
+else:
+    print(
+        f"\n⚠️  Esperava 4 versões e encontrei {len(versoes)}. "
+        "Confira o texto acima antes de publicar."
+    )
+pasta = salvar_versoes(resultado.raw, versoes)
+print(f"📁 Arquivos salvos em {pasta.resolve()}")
