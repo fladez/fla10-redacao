@@ -109,6 +109,16 @@ Aprovar na interface gera o pacote da versão escolhida em `exports/pacotes/<exe
 
 O comando exige `aprovada.json` com a mesma versão e o mesmo `conteudo_sha256`; texto alterado depois da aprovação é recusado. O slug sai do título, cortado em palavra inteira, e os textos sociais são derivados do lead — nada é inventado. O envio ao site continua manual.
 
+## Rotina pós-jogo (OpenBot)
+
+`rotina_pos_jogo.py` decide se há jogo recente do Flamengo e só então chama o pipeline:
+
+```bash
+/Users/rcorreas/miniconda3/envs/fla10/bin/python rotina_pos_jogo.py --sem-executar
+```
+
+Devolve um JSON de uma linha: `sem_dados`, `sem_jogo_recente`, `ja_gerado`, `executar` ou `gerado`. Considera jogo recente nas últimas 14 horas, grava o marcador em `exports/.ultima-rotina.json` para não repetir a mesma partida e o log em `logs/rotina-*.log`. Duas rotinas no OpenBot chamam esse script, em `America/Sao_Paulo`: **23:30** (resultado do dia) e **08:00** (rede de segurança para jogo que terminou tarde ou cota esgotada). Nada é publicado.
+
 ## Estado
 Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; não há integração com OpenRouter nem modelos pagos. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 
