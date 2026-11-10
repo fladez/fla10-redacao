@@ -30,10 +30,11 @@ from fla10_agents.publication import (
 )
 from fla10_agents.research import ResearchInputError, claims_from_payload
 from fla10_agents.writing import (
-    OpenRouterProvider,
+    LLMProvider,
     ProviderError,
     ReviewError,
     WritingError,
+    build_provider,
     decide_draft,
     default_review_model,
     default_writing_model,
@@ -86,9 +87,9 @@ def _print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
-def build_llm_provider() -> OpenRouterProvider:
+def build_llm_provider() -> LLMProvider:
     """Constrói o provedor real; testes substituem esta função."""
-    return OpenRouterProvider.from_env()
+    return build_provider()
 
 
 def _parse_aware_datetime(value: str, label: str) -> datetime:
@@ -664,7 +665,7 @@ def main() -> None:
     )
     report_parser = subparsers.add_parser(
         "run-report-test",
-        help="Executa ou retoma a comparação cega dos quatro modelos.",
+        help="Executa a comparação paga legada, se explicitamente autorizada.",
     )
     report_parser.add_argument(
         "--resume",
@@ -895,13 +896,19 @@ def main() -> None:
     redacao_gerar_parser.add_argument(
         "--model",
         default=default_writing_model(),
-        help="Modelo OpenRouter (padrão: FLA10_WRITING_MODEL ou openai/gpt-5.5).",
+        help=(
+            "Modelo do motor (padrão: FLA10_WRITING_MODEL ou "
+            "opencode/deepseek-v4.1-flash-free)."
+        ),
     )
     redacao_gerar_parser.add_argument(
         "--max-tokens",
         type=int,
         default=8000,
-        help="Limite de tokens de saída (padrão: 8000).",
+        help=(
+            "Limite de tokens de saída no OpenRouter (padrão: 8000). "
+            "No motor OpenCode, o runtime controla a geração."
+        ),
     )
     redacao_gerar_parser.add_argument(
         "--vault",

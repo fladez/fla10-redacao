@@ -23,14 +23,14 @@ Fora do escopo: redação integral, publicação automática, alteração do Red
 6. **Concluído:** agente Monitoramento e Pautas, com ingestão de sinais, deduplicação e detecção de redundância.
 7. **Concluído:** agente Apuração e Verificação, com dossiê, lacunas, contradições e recomendação.
 8. **Concluído:** orquestração ponta a ponta coberta por testes, com casos sintéticos e banco temporário.
-9. **Concluído:** produção, revisão independente e decisão humana (Fase 2), com provedor OpenRouter plugável e revisão determinística disponível.
+9. **Concluído:** produção, revisão independente e decisão humana (Fase 2), com motor gratuito DeepSeek V4.1 Flash Free pelo OpenCode e revisão determinística disponível.
 10. **Concluído:** pacote de CMS, exportação local e registro de publicação confirmada (Fase 3), sem envio externo.
-11. **Pendente:** executar a avaliação comparativa paga e validar o retrabalho com casos editoriais reais.
+11. **Suspenso:** avaliação comparativa paga. O motor gratuito DeepSeek V4.1 Flash Free é o padrão inicial; a comparação só roda com `FLA10_ENABLE_PAID_EVALUATION=1`.
 
 ## Fase 2 — Produção e revisão
 Adicionar Produção e Revisão independente. Testar formatos Fla10, validar HTML e marcadores obrigatórios e medir retrabalho com casos reais.
 
-**Estado:** implementada em modo local. A produção usa OpenRouter com provedor plugável, lê os documentos canônicos do vault e só gera a partir de pauta `approved` e dossiê `pronto para redação`. A revisão combina checagens determinísticas e análise por modelo independente; a aprovação humana é bloqueada quando o parecer mais recente é `bloqueado`. O modelo padrão provisório é `openai/gpt-5.5`, configurável por `FLA10_WRITING_MODEL` e `FLA10_REVIEW_MODEL`. A avaliação comparativa paga ainda não foi executada.
+**Estado:** implementada em modo local. A produção usa o motor gratuito DeepSeek V4.1 Flash Free pelo runtime local do OpenCode, lê os documentos canônicos do vault e só gera a partir de pauta `approved` e dossiê `pronto para redação`. A revisão combina checagens determinísticas e análise por modelo independente; a aprovação humana é bloqueada quando o parecer mais recente é `bloqueado`. O modelo padrão é `opencode/deepseek-v4.1-flash-free`, configurável por `FLA10_WRITING_MODEL` e `FLA10_REVIEW_MODEL`. A avaliação comparativa paga está desativada por padrão.
 
 ## Fase 3 — SEO, distribuição e publicação assistida
 Adicionar metadados, adaptações de distribuição e preparação de CMS. Manter aprovação humana para toda ação pública.
@@ -47,4 +47,4 @@ Requisitos testáveis; testes automatizados passando; fontes rastreáveis; incer
 Precisão de datas e fatos; proporção de afirmações com evidência; uso de fontes primárias; contradições detectadas; falsos positivos e duplicidade; erros críticos; retrabalho; tempo/custo por tarefa; falhas de integração e violações de permissão.
 
 ## Próxima etapa
-As fases 1, 2 e 3 estão operacionais localmente. A próxima decisão do responsável é executar ou não a avaliação paga de modelos prevista em `docs/11-protocolo-avaliacao-modelos.md`; até lá, `openai/gpt-5.5` permanece como padrão provisório. A publicação automática continua fora do escopo até existir um endpoint autorizado no site; por enquanto, o fluxo termina em exportação local e registro manual confirmado.
+As fases 1, 2 e 3 estão operacionais localmente com o motor gratuito DeepSeek V4.1 Flash Free pelo OpenCode. A avaliação comparativa paga foi suspensa e só pode ser executada com autorização explícita. A publicação automática continua fora do escopo até existir um endpoint autorizado no site; por enquanto, o fluxo termina em exportação local e registro manual confirmado.

@@ -162,6 +162,7 @@ def _fake_model_result(model_id: str) -> dict:
 def _configure_fake_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("FLA10_ENABLE_PAID_EVALUATION", "1")
     monkeypatch.setattr(
         evaluation.OpenRouterSettings,
         "from_env",
@@ -277,6 +278,16 @@ def test_load_input_material_rejects_missing_snapshot(
         match="Snapshot ausente ou ilegível",
     ):
         evaluation._load_input_material(output_dir)
+
+
+def test_run_report_test_is_blocked_without_explicit_opt_in(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("FLA10_ENABLE_PAID_EVALUATION", raising=False)
+
+    with pytest.raises(ModelEvaluationError, match="desativada"):
+        run_report_test(tmp_path)
 
 
 def test_run_report_test_saves_complete_blind_evaluation(

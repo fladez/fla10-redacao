@@ -3,7 +3,7 @@
 **Projeto:** Fla10-Agents  
 **Caso:** A força da Nação — poder econômico e influência da torcida do Flamengo  
 **Versão:** 1.0  
-**Status:** preparado; execução depende de configuração local segura do OpenRouter e validação do pacote de entrada.
+**Status:** suspenso. O projeto opera inicialmente com o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero. Este protocolo documenta uma avaliação comparativa paga opcional e só pode ser executado com `FLA10_ENABLE_PAID_EVALUATION=1`.
 
 ## 1. Objetivo
 

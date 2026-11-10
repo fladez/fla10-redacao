@@ -63,11 +63,19 @@ cp .env.example .env
 
 Edite o arquivo `.env` e informe o token GitHub em `GITHUB_TOKEN`. Mantenha o restante como está, salvo necessidade explícita. O arquivo `.env` é ignorado pelo Git.
 
-Para executar o teste comparativo dos modelos e a produção editorial, informe também a chave do OpenRouter em `OPENROUTER_API_KEY`. A chave deve ser criada em https://openrouter.ai/settings/keys e guardada somente no arquivo local `.env`. Não a cole no chat, não a inclua em capturas de tela e não a versione no Git.
+O motor padrão é o **DeepSeek V4.1 Flash Free** pelo runtime local do OpenCode, com custo zero. Ele não exige `OPENROUTER_API_KEY`. O padrão já fica em:
 
-A produção usa `FLA10_WRITING_MODEL` (padrão provisório `openai/gpt-5.5`) e a revisão usa `FLA10_REVIEW_MODEL`; quando a segunda não está definida, a revisão usa o mesmo modelo da redação. Os IDs precisam existir no catálogo do OpenRouter e não há fallback silencioso para outro modelo.
+```dotenv
+FLA10_LLM_ENGINE=opencode
+FLA10_WRITING_MODEL=opencode/deepseek-v4.1-flash-free
+FLA10_REVIEW_MODEL=
+```
 
-O módulo de avaliação usa o endpoint OpenRouter e os IDs documentados em `docs/11-protocolo-avaliacao-modelos.md`. Não é necessária uma chave direta da OpenAI para essa comparação. `OPENAI_API_KEY` permanece reservado a futuras integrações diretas.
+`FLA10_OPENCODE_BIN` é opcional; quando vazio, o sistema procura o executável no `PATH` e no runtime local do OpenBot. `FLA10_OPENCODE_TIMEOUT` define o limite de cada geração em segundos (padrão: 600).
+
+A revisão usa `FLA10_REVIEW_MODEL`; quando ausente, usa o mesmo modelo da redação. O OpenRouter continua disponível como alternativa, mas não é o padrão e exige configurar `FLA10_LLM_ENGINE=openrouter`, `OPENROUTER_API_KEY` e um modelo explicitamente.
+
+A avaliação comparativa paga está suspensa e só roda com `FLA10_ENABLE_PAID_EVALUATION=1`. O documento histórico está em `docs/11-protocolo-avaliacao-modelos.md`; ele não é pré-requisito do fluxo editorial.
 
 ## 5. Executar testes locais
 
@@ -77,7 +85,7 @@ ruff check .
 mypy src
 ```
 
-Os testes automatizados não fazem chamadas pagas ao OpenRouter e não exigem uma chave válida.
+Os testes automatizados não chamam o runtime do OpenCode, não fazem chamadas pagas ao OpenRouter e não exigem chave válida.
 
 O banco local do calendário fica em `data/calendar.db` na raiz do projeto. Para apontar para outro arquivo, use `--database` ou defina a variável `FLA10_DATABASE` no ambiente. O banco é criado automaticamente na primeira execução, com versão de schema registrada em `PRAGMA user_version`; a abertura migra estruturas antigas e recusa bancos de versão mais nova.
 
@@ -97,23 +105,25 @@ O resultado deve informar repositório, branch, commit SHA e nomes dos quatro do
 
 Se o comando retornar erro 401 ou 403, conferir a validade do token, o repositório selecionado e a permissão Contents: Read-only. Não ampliar permissões para escrita como tentativa de resolver erro de leitura.
 
-## 7. Executar o primeiro teste comparativo
+## 7. Validar o motor gratuito
 
-Depois de configurar a chave OpenRouter, executar:
+Com o runtime do OpenCode disponível, execute uma geração real em banco temporário antes de operar o banco principal. O teste abaixo não publica nada:
 
 ```bash
-fla10 run-report-test
+fla10 redacao gerar ID_DA_PROPOSTA --database /caminho/temporario/editorial.db
 ```
 
-O programa envia o mesmo prompt e o mesmo dossiê aos três modelos, sem habilitar pesquisa externa. As respostas recebem rótulos cegos e são salvas localmente em `artifacts/model-evaluation/`, junto com metadados de uso e um arquivo separado que identifica cada modelo.
+O sistema envia o prompt pela entrada padrão do processo e não usa chave de API. Se o executável não for encontrado, defina o caminho:
 
-O diretório `artifacts/` é ignorado pelo Git. Não enviar a chave de cegamento antes de concluir a avaliação cega. A primeira execução pode gerar cobrança no OpenRouter; consulte o preço dos modelos no dia do teste e defina um limite de gastos na conta.
+```bash
+export FLA10_OPENCODE_BIN="/caminho/para/opencode"
+```
 
-A chamada não permite fallback silencioso para outro modelo. Se um endpoint falhar, o comando informa o modelo e interrompe a execução; não substitui o modelo por outro.
+A avaliação comparativa antiga está desativada. Para executá-la conscientemente, seria necessário configurar a chave OpenRouter e `FLA10_ENABLE_PAID_EVALUATION=1`; esse não é o fluxo padrão.
 
 ## 8. Produção, revisão e publicação assistida
 
-O fluxo editorial usa o mesmo `OPENROUTER_API_KEY`:
+O fluxo editorial usa o motor gratuito por padrão:
 
 ```bash
 fla10 redacao gerar ID_DA_PROPOSTA
@@ -156,7 +166,7 @@ O registro exige URL válida, data com fuso e confirmação não vazia. Ele tamb
 
 - Não versionar `.env`.
 - Não registrar credenciais em logs.
-- Não compartilhar a chave OpenRouter no chat.
+- Não compartilhar chaves de API no chat.
 - Revogar qualquer chave que tenha sido exposta.
 - Não usar a credencial do conector de administração para o processo de execução.
 - Não habilitar escrita no Redacao-Fla10 para os agentes do MVP.

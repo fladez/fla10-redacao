@@ -48,20 +48,34 @@ fla10 check-editorial
 
 O comando confirma a leitura dos quatro documentos-base e informa o commit consultado. Não altera o repositório editorial.
 
-## Avaliação comparativa de modelos
+## Motor gratuito DeepSeek V4
 
-O primeiro caso editorial está preparado. Depois de configurar `OPENROUTER_API_KEY` localmente:
+O motor padrão de produção e revisão é o **DeepSeek V4.1 Flash Free** executado pelo runtime local do OpenCode:
 
-```bash
-fla10 run-report-test
+```text
+opencode/deepseek-v4.1-flash-free
 ```
 
-O comando envia o mesmo prompt e o mesmo dossiê aos três modelos definidos no protocolo, salva as respostas cegas e os metadados em `artifacts/model-evaluation/`, diretório ignorado pelo Git. A chave de identificação dos modelos fica em arquivo separado nessa pasta. Não compartilhe a chave de API nem publique os resultados antes da avaliação.
+Ele não usa OpenRouter, não exige chave de API e tem custo zero no ambiente local configurado. O sistema envia o prompt pela entrada padrão do processo, sem colocá-lo na linha de comando.
 
-A execução real ainda depende de configurar a chave e validar a primeira rodada. Consulte [Configuração local](docs/10-configuracao-local.md).
+Variáveis:
+
+- `FLA10_LLM_ENGINE`: `opencode` (padrão) ou `openrouter`.
+- `FLA10_OPENCODE_BIN`: caminho opcional do executável do OpenCode; quando vazio, o sistema procura no `PATH` e no runtime local do OpenBot.
+- `FLA10_OPENCODE_TIMEOUT`: limite em segundos. Padrão: 600.
+- `FLA10_WRITING_MODEL`: modelo de redação. Padrão: `opencode/deepseek-v4.1-flash-free`.
+- `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
+
+O OpenRouter permanece como alternativa opcional, mas não é o padrão. A avaliação comparativa paga está desativada por padrão e só roda com `FLA10_ENABLE_PAID_EVALUATION=1`.
+
+## Avaliação comparativa de modelos
+
+O protocolo comparativo pago foi suspenso. O projeto não precisa dele para operar: a produção e a revisão usam o DeepSeek V4 gratuito. O comando `fla10 run-report-test` recusa a execução sem autorização explícita em `FLA10_ENABLE_PAID_EVALUATION=1`.
+
+O documento histórico permanece em [Protocolo de avaliação comparativa](docs/11-protocolo-avaliacao-modelos.md), sem ser pré-requisito do fluxo editorial.
 
 ## Estado
-Fundação técnica, avaliação comparativa, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação paga de modelos continua pendente de decisão do responsável; o modelo provisório de redação é `openai/gpt-5.5`. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
+Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor padrão de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; a avaliação comparativa paga está desativada por padrão. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 
 
 ## Calendário esportivo — operação local inicial
@@ -263,12 +277,14 @@ As fases 2 e 3 geram texto a partir de pauta aprovada e dossiê com recomendaç�
 
 ### Configuração do provedor
 
-- `OPENROUTER_API_KEY`: obrigatória para gerar e revisar com modelo.
-- `OPENROUTER_API_URL`: padrão `https://openrouter.ai/api/v1`.
-- `FLA10_WRITING_MODEL`: modelo de redação. Padrão provisório: `openai/gpt-5.5`.
+- `FLA10_LLM_ENGINE`: `opencode` por padrão, usando o DeepSeek V4.1 Flash Free com custo zero.
+- `FLA10_OPENCODE_BIN`: caminho opcional do executável do OpenCode.
+- `FLA10_OPENCODE_TIMEOUT`: tempo máximo por geração, em segundos. Padrão: 600.
+- `FLA10_WRITING_MODEL`: modelo de redação. Padrão: `opencode/deepseek-v4.1-flash-free`.
 - `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
+- `OPENROUTER_API_KEY`: necessária apenas se `FLA10_LLM_ENGINE=openrouter`.
 
-A chamada não permite fallback silencioso: se o modelo configurado falhar, o comando interrompe. A chave nunca é exibida em mensagens de erro ou logs.
+O motor padrão não permite fallback silencioso: se o modelo configurado falhar, o comando interrompe. Nenhuma chave é exibida em mensagens de erro ou logs.
 
 ### Fluxo completo
 
@@ -315,7 +331,7 @@ A revisão combina checagens determinísticas (campos obrigatórios, marcadores,
 
 ### Limites das fases 2 e 3
 
-- O modelo padrão é provisório até a avaliação comparativa ser executada.
+- O motor gratuito depende do runtime local do OpenCode estar disponível e autenticado.
 - A qualidade factual depende do dossiê; o sistema não busca fontes sozinho na geração.
 - A publicação externa continua manual: não existe endpoint autorizado no site.
 - O registro de publicação exige URL e confirmação verificável; sem isso, o pacote permanece `exported`.

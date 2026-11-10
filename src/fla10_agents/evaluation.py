@@ -1,5 +1,10 @@
 
-"""Execução controlada do teste comparativo de modelos via OpenRouter."""
+"""Teste comparativo legado via OpenRouter, desativado por padrão.
+
+O motor editorial do projeto é o DeepSeek V4.1 Flash Free pelo OpenCode, com
+custo zero. Esta comparação paga só executa com
+``FLA10_ENABLE_PAID_EVALUATION=1`` e não é necessária para operar o sistema.
+"""
 
 import hashlib
 import json
@@ -259,7 +264,15 @@ def run_report_test(
     project_root: Path | None = None,
     resume_run_id: str | None = None,
 ) -> Path:
-    """Executa ou retoma os quatro modelos sem repetir resultados concluídos."""
+    """Executa ou retoma a comparação paga, somente com autorização explícita."""
+    if os.getenv("FLA10_ENABLE_PAID_EVALUATION", "").strip() != "1":
+        raise ModelEvaluationError(
+            "A avaliação comparativa paga está desativada. O motor padrão é o "
+            "DeepSeek V4.1 Flash Free pelo OpenCode, sem custo. Para executar "
+            "a comparação antiga, defina FLA10_ENABLE_PAID_EVALUATION=1 "
+            "conscientemente."
+        )
+
     root = project_root or Path.cwd()
     output_root = root / "artifacts" / "model-evaluation"
 
