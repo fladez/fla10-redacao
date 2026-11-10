@@ -31,7 +31,7 @@ Em agosto de 2026, o clube reformulou o plano, manteve a mensalidade de R$ 19,81
 
 **Lacunas:** o material não contém número atualizado de adesões, cancelamentos, retenção, inadimplência, uso dos benefícios, distribuição geográfica nem receita líquida do plano.
 
-Fonte institucional do lançamento: https://www.flamengo.com.br/noticias/institucional  
+Fonte institucional do lançamento: https://www.flamengo.com.br/noticias/institucional/flamengo-apresenta-o-novo-nacao--um-programa-de-socio-torcedor-sem-fronteiras
 Cobertura da reformulação: https://ge.globo.com/futebol/times/flamengo/noticia/2026/08/08/flamengo-reformula-plano-popular-do-programa-de-socio-torcedor-entenda-mudancas.ghtml
 
 ### 2.3 Patrocínios e valor comercial do uniforme
@@ -96,13 +96,45 @@ Não reproduzir estimativas de terceiros sobre “cerca de 500” núcleos como 
 
 Fonte: https://embaixadaseconsulados.flamengo.com.br/
 
+### 2.9 Alcance digital e presença nas plataformas
+
+O Ranking Digital dos Clubes Brasileiros de novembro de 2026, publicado pelo IBOPE Repucom em 4 de novembro, registrou que o Flamengo alcançou 69 milhões de inscrições somadas em suas plataformas oficiais. Para outubro, o instituto informou um crescimento total de 202 mil inscrições. No detalhamento por plataforma, registrou aproximadamente 100 mil novas inscrições no TikTok, 77 mil no Instagram e 50 mil no YouTube. A soma desses três números é de 227 mil, portanto não coincide com o total geral de 202 mil divulgado na mesma publicação. O levantamento não explica a divergência. Os valores devem ser tratados como números separadamente atribuídos à fonte, sem tentar conciliá-los ou calcular novas proporções a partir deles.
+
+O indicador reúne bases de seguidores e inscrições de diferentes plataformas. Não representa indivíduos únicos, alcance efetivo, usuários ativos ou consumidores. Uma mesma pessoa pode acompanhar o clube em várias redes, e o levantamento não informa a sobreposição entre essas bases.
+
+**Uso permitido:** dimensionar a presença digital do Flamengo e discutir seu potencial comercial como ativo de comunicação e relacionamento, deixando claro o que o indicador mede.
+
+**Limitações:** o levantamento não apresenta audiência efetiva, engajamento comercial, conversão em compradores ou retorno financeiro para o clube.
+
+**Uso vedado:** tratar 69 milhões como número de torcedores únicos, consumidores, pessoas efetivamente alcançadas ou compradores potenciais comprovados.
+
+Fonte primária: IBOPE Repucom, Ranking Digital dos Clubes Brasileiros — Nov/2026, publicado em 04/11/2026:
+
+https://www.iboperepucom.com/br/rankings/ranking-digital-dos-clubes-brasileiros-nov-2026/
+
+### 2.10 Base de sócios-torcedores adimplentes
+
+Em reportagem publicada em 30 de janeiro de 2026, o ge informou que o presidente Bap havia apresentado uma base de aproximadamente 118 mil sócios adimplentes em novembro de 2025, ante 72 mil anteriormente. O levantamento registrou que o Flamengo não havia divulgado números atualizados para janeiro de 2026. A tabela do ge também apresentou aproximadamente 118 mil associados para o clube, com ressalva de aproximação.
+
+O levantamento do ge consultou os clubes das Séries A e B, mas ressalvou que os critérios de contabilização variam conforme cada programa e estatuto. O número deve, portanto, ser tratado como base aproximada de associados adimplentes, atribuída ao dirigente e reportada pelo veículo, não como contagem independente de torcedores.
+
+**Uso permitido:** demonstrar que o Flamengo divulgou crescimento de sua base de sócios adimplentes e relacionar o movimento à estratégia de relacionamento e ao plano Nação Sem Fronteiras, conforme a atribuição feita pelo ge.
+
+**Limitações:** o dado se refere a novembro de 2025 e não representa uma atualização confirmada para novembro de 2026. O material não apresenta receita líquida, retenção, inadimplência posterior ou distribuição geográfica dessa base.
+
+**Uso vedado:** apresentar os 118 mil como número atual confirmado, somá-los a seguidores digitais ou calcular uma taxa de conversão dividindo esse total pela estimativa de 45 milhões de torcedores.
+
+Fonte: ge, Ranking de sócios: Atlético-MG, Corinthians e Vasco sobem; Palmeiras é o líder, publicado em 30/01/2026:
+
+https://ge.globo.com/gato-mestre/noticia/2026/01/30/ranking-de-socios-atletico-mg-corinthians-e-vasco-sobem-palmeiras-e-o-lider.ghtml
+
 ## 3. Dimensão cultural, identidade e estudos acadêmicos
 
 ### 3.1 Marizabel Kowalski — Por que Flamengo? (2001)
 
 Tese de doutorado que investiga a construção da popularidade nacional do clube para além de títulos e ídolos. Relaciona imprensa, literatura, música, poesia, carnaval, pertencimento, hábitos e identidade social à formação da tradição rubro-negra.
 
-Referência: Laboratório de Educação e Patrimônio Cultural da UFF.  
+Tese de doutorado em Educação Física, Universidade Gama Filho, 2001. Registro bibliográfico consultado: Laboratório de Educação e Patrimônio Cultural da UFF.
 https://laboep.uff.br/kowalski-m-por-que-flamengo/
 
 ### 3.2 Rafael Willian Clemente — memória e espaço do torcer (UFRRJ, 2024)
@@ -121,7 +153,7 @@ https://www.revistas.ufrj.br/index.php/Recorde/article/view/3292
 
 - Alexandre Vodopives de Araújo e Angela Da Rocha (UFRJ), *Consuming Football: A Segmentation Study of Brazilian Football Fans*, publicado em 26/05/2026 na Revista Economia & Gestão. Pesquisa online com torcedores de um clube profissional brasileiro; segmenta o público em quatro grupos segundo identificação, lealdade e comportamento de compra. Não é estudo específico do Flamengo e a página-resumo consultada não informa tamanho da amostra. https://pucminas.emnuvens.com.br/economiaegestao/article/view/35526
 - Jimmy Medeiros e Philippe Guedon (FGV), *Meandros da fidelização econômico-torcedora: perfis dos consumidores e motivadores do ingresso nos programas sócio-torcedor de clubes cariocas*, FuLiA/UFMG, 2024. Survey online sobre programas de quatro grandes clubes cariocas; identifica motivadores racionais, sociais e emocionais. Não substitui dados atualizados do Flamengo. https://periodicos.ufmg.br/index.php/fulia/article/view/46525
-- George Alba (UFRGS), artigo de 2021 na REAd sobre escala dos efeitos da identificação clubística. Trabalha com amostras de 477 respondentes online não probabilísticos e 363 presenciais probabilísticos; organiza efeitos em comprometimento, lealdade e consumo. Útil para distinguir identificação afetiva de comportamento de consumo. https://www.scielo.br/j/read/a/4WvMs8vp9kxTrQBXvqBDVvS/?lang=pt
+- George Alba (UFRGS), artigo publicado em 2021 na REAd sobre o desenvolvimento e a validação de uma escala dos efeitos da identificação clubística. Na etapa exploratória on-line, foram obtidos 507 questionários, dos quais 30 foram excluídos, resultando em 477 casos. Na etapa confirmatória presencial, foram obtidos 363 questionários, com 26 exclusões e 337 casos na análise final. O estudo distingue comprometimento clubístico, lealdade e consumo. As amostras envolvem torcedores de Grêmio e Internacional, não do Flamengo; a pesquisa oferece referência metodológica e teórica, não evidência direta sobre a Nação. https://www.scielo.br/j/read/a/4WvMs8vp9kxTrQBXvqBDVvS/?lang=pt
 - Amorim e Almeida, REAd/UFRGS, dezembro de 2017, sobre efeitos da identificação regional no valor da marca do patrocinador esportivo. Amostra não probabilística de 2.116 torcedores de Grêmio e Internacional. Sugere influência indireta da identificação regional, mediada parcialmente pela congruência entre patrocinador e clube. Não analisou o Flamengo; serve como fundamento teórico, não como prova do retorno comercial rubro-negro. https://www.scielo.br/j/read/a/C9rcjpPZGwLCJYPnyknYRJN/?lang=pt
 - Mauro Mangini Dalzochio (UCS, 2020), estudo de caso sobre exposição e retorno de investimento em patrocínio de futebol. TCC complementar, não evidência de mercado atual. https://repositorio.ucs.br/11338/8926
 - Crosara Junior, Fagundes, Almeida e Muylder (2025), estudo com 499 entrevistados sobre curiosidade específica, identificação, satisfação e intenção de comprar produtos ou assistir a jogos. Amostra majoritariamente jovem (67,2% entre 18 e 30 anos); não deve ser tratada como amostra nacional representativa. https://doi.org/10.5585/2025.27747
@@ -151,7 +183,7 @@ O registro editorial informa que entrevistas e pedidos institucionais foram prep
 
 ## 5. Limites de interpretação e proibições expressas
 
-- Não inferir que 68 milhões de inscrições equivalem a pessoas únicas.
+- Não tratar o total combinado de seguidores e inscrições nas plataformas digitais como indivíduos únicos.
 - Não dividir 118 mil sócios por 45 milhões para fabricar taxa de conversão.
 - Não atribuir automaticamente crescimento de receita à torcida.
 - Não converter valor contratual de patrocínio em receita recebida sem checagem contábil.
@@ -164,9 +196,13 @@ O registro editorial informa que entrevistas e pedidos institucionais foram prep
 
 ## 6. Síntese provisória
 
-A documentação sustenta que a dimensão da torcida do Flamengo se relaciona com ativos comerciais observáveis: bilheteria, patrocínios, licenciamento, audiência e iniciativas de relacionamento. Há exemplos concretos de ativação comercial e de produtos voltados a torcedores fora do Rio. A identidade cultural e o pertencimento ajudam a explicar a extensão nacional e a persistência dessa relação.
+A documentação apresenta evidências de que a dimensão e o engajamento da torcida são explorados comercialmente pelo Flamengo em diferentes frentes. Entre elas estão os contratos de patrocínio e fornecimento esportivo, os critérios de distribuição de direitos de transmissão relacionados à audiência, as ativações comerciais em plataformas de comércio eletrônico e as iniciativas de relacionamento com sócios e torcedores.
 
-Mas os dados públicos reunidos não permitem calcular um valor econômico total da torcida nem demonstrar causalmente quanto cada receita decorre de seu tamanho ou engajamento. Permanecem lacunas sobre consumidores únicos, distribuição regional do consumo, conversão, elasticidade a preços, retorno incremental dos patrocínios e receitas efetivamente realizadas. A reportagem deve demonstrar o que é mensurável, atribuir corretamente as declarações e explicar o que ainda não pode ser medido.
+O material também registra a presença territorial de embaixadas e consulados e a dimensão das inscrições nas plataformas digitais. Esses indicadores ajudam a compreender o alcance e a estrutura de relacionamento do clube, mas não medem, isoladamente, consumidores únicos, conversão comercial ou receita.
+
+Os estudos acadêmicos oferecem elementos para compreender como identificação, pertencimento, lealdade e comportamento de consumo podem se relacionar. Não demonstram, entretanto, que esses mecanismos produzam determinado resultado financeiro no Flamengo nem permitem atribuir uma causa única à expansão nacional da torcida.
+
+Os dados públicos reunidos não permitem calcular o valor econômico total da torcida ou demonstrar quanto da receita do clube decorre diretamente de seu tamanho e engajamento. Permanecem lacunas sobre consumidores únicos, distribuição regional do consumo, conversão, retenção, retorno incremental dos patrocínios e receitas efetivamente realizadas. A reportagem deve distinguir os ativos comerciais documentados das hipóteses sobre seu potencial, atribuir corretamente as declarações e explicar os limites do que ainda não pode ser medido.
 
 ## 7. Registro editorial de origem
 

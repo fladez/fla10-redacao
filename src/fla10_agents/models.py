@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import StrEnum
+from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
@@ -47,7 +48,7 @@ class EvidenceSource(BaseModel):
 
 
 class SportsEvent(BaseModel):
-    event_id: str
+    event_id: str = Field(default_factory=lambda: str(uuid4()))
     sport: str
     category: str
     competition: str

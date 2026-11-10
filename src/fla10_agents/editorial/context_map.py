@@ -12,6 +12,8 @@ TASK_DOCUMENTS: dict[str, tuple[str, ...]] = {
         "02 - Operação/Fluxo de Produção.md",
         "02 - Operação/Gestão de Pautas.md",
         "06 - Pautas/Painel de Pautas.md",
+        "02 - Operação/Pesquisa e Fontes.md",
+        "08 - Fontes e Referências/Critérios de Confiabilidade.md",
     ),
     "monitoring": (
         "01 - Manual Editorial/Identidade Editorial.md",

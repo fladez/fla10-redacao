@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass
 
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        load_dotenv()
+        load_dotenv(find_dotenv(usecwd=True))
         token = os.getenv("GITHUB_TOKEN", "").strip()
         if not token:
             raise ValueError(
@@ -37,7 +37,7 @@ class OpenRouterSettings:
 
     @classmethod
     def from_env(cls) -> "OpenRouterSettings":
-        load_dotenv()
+        load_dotenv(find_dotenv(usecwd=True))
         token = os.getenv("OPENROUTER_API_KEY", "").strip()
         if not token:
             raise ValueError(

@@ -25,9 +25,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="fla10")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("check-editorial", help="Testa a leitura do vault editorial.")
-    subparsers.add_parser(
+    report_parser = subparsers.add_parser(
         "run-report-test",
-        help="Executa a comparação cega dos três modelos no caso A força da Nação.",
+        help="Executa ou retoma a comparação cega dos quatro modelos.",
+    )
+    report_parser.add_argument(
+        "--resume",
+        metavar="RUN_ID",
+        help="Retoma uma execução interrompida pelo identificador da rodada.",
     )
     args = parser.parse_args()
 
@@ -35,7 +40,7 @@ def main() -> None:
         if args.command == "check-editorial":
             raise SystemExit(check_editorial())
         if args.command == "run-report-test":
-            output_dir = run_report_test()
+            output_dir = run_report_test(resume_run_id=args.resume)
             print("Teste concluído. Arquivos salvos localmente em:")
             print(output_dir)
             print("Não publique os resultados nem a chave de cegamento antes da avaliação.")
