@@ -160,6 +160,8 @@ def main() -> None:
                 raise SystemExit(calendar_process(args.input, args.database))
             if args.calendar_command == "list":
                 raise SystemExit(calendar_list(args.database))
+            if args.calendar_command == "sync-cbf":
+                raise SystemExit(calendar_sync_cbf(args.url, args.season, args.database))
         if args.command == "run-report-test":
             output_dir = run_report_test(resume_run_id=args.resume)
             print("Teste concluído. Arquivos salvos localmente em:")
