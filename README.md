@@ -62,3 +62,46 @@ A execução real ainda depende de configurar a chave e validar a primeira rodad
 
 ## Estado
 Fundação técnica e módulo inicial de avaliação comparativa implementados. Lint e testes anteriores aprovados em Python 3.11 e 3.12; a nova implementação de avaliação aguarda execução da CI. A comparação real dos modelos depende da configuração segura da chave OpenRouter. Os agentes editoriais completos, parser de pautas e publicação automática ainda não estão implementados.
+
+
+## Calendário esportivo — operação local inicial
+
+O calendário já pode receber observações normalizadas em JSON e manter os eventos e o histórico em SQLite. Esta etapa permite operar e validar o agente sem depender de um coletor externo ainda não implementado.
+
+Exemplo de arquivo `evento.json`:
+
+```json
+{
+  "provider": "cbf",
+  "external_id": "identificador-na-fonte",
+  "event": {
+    "sport": "futebol",
+    "category": "profissional masculino",
+    "competition": "Campeonato Brasileiro",
+    "season": "2026",
+    "stage": "rodada 33",
+    "home_team": "Flamengo",
+    "away_team": "Palmeiras",
+    "starts_at_local": "2026-11-10T19:00:00",
+    "timezone": "America/Sao_Paulo",
+    "venue": "Maracanã",
+    "event_status": "confirmed",
+    "sources": [],
+    "last_verified_at": "2026-11-10T12:00:00Z"
+  }
+}
+```
+
+Processar e atualizar o banco local:
+
+```bash
+fla10 calendar process --input evento.json
+```
+
+Consultar os eventos registrados:
+
+```bash
+fla10 calendar list
+```
+
+O comando não busca fontes na internet nem inventa dados ausentes. O arquivo deve conter informações já apuradas; cada execução preserva o histórico de alterações. O banco padrão fica em `data/calendar.db` e pode ser alterado com `--database`.

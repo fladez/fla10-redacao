@@ -1,11 +1,15 @@
 """Comandos de diagnóstico e avaliação para o MVP."""
 
 import argparse
+import json
 import sys
+from pathlib import Path
 
+from fla10_agents.calendar import CalendarAgent, CalendarRepository
 from fla10_agents.config import Settings
 from fla10_agents.editorial.github_reader import EditorialSourceError, GitHubEditorialReader
 from fla10_agents.evaluation import ModelEvaluationError, run_report_test
+from fla10_agents.models import SportsEvent
 
 
 def check_editorial() -> int:
@@ -21,10 +25,88 @@ def check_editorial() -> int:
     return 0
 
 
+
+def calendar_process(input_path: str, database_path: str) -> int:
+    """Importa uma observação normalizada e atualiza o calendário local."""
+    payload = json.loads(Path(input_path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("O arquivo deve conter um objeto JSON.")
+
+    event_data = payload.get("event", payload)
+    if not isinstance(event_data, dict):
+        raise ValueError("O campo 'event' deve conter um objeto JSON.")
+
+    event = SportsEvent.model_validate(event_data)
+    provider = payload.get("provider")
+    external_id = payload.get("external_id")
+
+    with CalendarRepository(database_path) as repository:
+        result = CalendarAgent(repository).process_observation(
+            event,
+            provider=provider,
+            external_id=external_id,
+        )
+
+    print(json.dumps({
+        "action": result.action.value,
+        "event_id": result.event_id,
+        "identity_status": result.identity_status.value,
+        "reason": result.reason,
+        "differences": [
+            {
+                "field": item.field,
+                "previous_value": item.previous_value,
+                "current_value": item.current_value,
+            }
+            for item in result.differences
+        ],
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+def calendar_list(database_path: str) -> int:
+    """Lista os eventos registrados no calendário local."""
+    with CalendarRepository(database_path) as repository:
+        events = repository.list_events()
+    print(json.dumps(
+        [event.model_dump(mode="json") for event in events],
+        ensure_ascii=False,
+        indent=2,
+    ))
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="fla10")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("check-editorial", help="Testa a leitura do vault editorial.")
+    calendar_parser = subparsers.add_parser(
+        "calendar",
+        help="Importa observações e consulta o calendário esportivo local.",
+    )
+    calendar_commands = calendar_parser.add_subparsers(
+        dest="calendar_command",
+        required=True,
+    )
+    process_parser = calendar_commands.add_parser(
+        "process",
+        help="Processa um evento normalizado em arquivo JSON.",
+    )
+    process_parser.add_argument("--input", required=True, help="Arquivo JSON da observação.")
+    process_parser.add_argument(
+        "--database",
+        default="data/calendar.db",
+        help="Banco SQLite local (padrão: data/calendar.db).",
+    )
+    list_parser = calendar_commands.add_parser(
+        "list",
+        help="Lista os eventos já registrados.",
+    )
+    list_parser.add_argument(
+        "--database",
+        default="data/calendar.db",
+        help="Banco SQLite local (padrão: data/calendar.db).",
+    )
     report_parser = subparsers.add_parser(
         "run-report-test",
         help="Executa ou retoma a comparação cega dos quatro modelos.",
@@ -39,6 +121,11 @@ def main() -> None:
     try:
         if args.command == "check-editorial":
             raise SystemExit(check_editorial())
+        if args.command == "calendar":
+            if args.calendar_command == "process":
+                raise SystemExit(calendar_process(args.input, args.database))
+            if args.calendar_command == "list":
+                raise SystemExit(calendar_list(args.database))
         if args.command == "run-report-test":
             output_dir = run_report_test(resume_run_id=args.resume)
             print("Teste concluído. Arquivos salvos localmente em:")
