@@ -1,4 +1,4 @@
-"""Comandos de diagnóstico e avaliação para o MVP."""
+"""Comandos de diagnóstico e operação editorial do MVP."""
 
 import argparse
 import json
@@ -17,7 +17,6 @@ from fla10_agents.editorial.github_reader import EditorialSourceError, GitHubEdi
 from fla10_agents.editorial.pautas import Pauta, parse_pauta_documents
 from fla10_agents.editorial.store import PROPOSAL_DECISIONS, EditorialRepository
 from fla10_agents.editorial.vault import LocalVaultReader, VaultError
-from fla10_agents.evaluation import ModelEvaluationError, run_report_test
 from fla10_agents.models import SportsEvent
 from fla10_agents.monitoring import SignalInputError, signals_from_payload
 from fla10_agents.pipeline import build_and_save_dossier, run_pauta_pipeline
@@ -663,15 +662,6 @@ def main() -> None:
         default=20,
         help="Quantidade de execuções exibidas (padrão: 20).",
     )
-    report_parser = subparsers.add_parser(
-        "run-report-test",
-        help="Executa a comparação paga legada, se explicitamente autorizada.",
-    )
-    report_parser.add_argument(
-        "--resume",
-        metavar="RUN_ID",
-        help="Retoma uma execução interrompida pelo identificador da rodada.",
-    )
 
     vault_parser = subparsers.add_parser(
         "vault",
@@ -906,8 +896,8 @@ def main() -> None:
         type=int,
         default=8000,
         help=(
-            "Limite de tokens de saída no OpenRouter (padrão: 8000). "
-            "No motor OpenCode, o runtime controla a geração."
+            "Compatibilidade: o runtime do OpenCode controla o tamanho da "
+            "geração e não usa este valor."
         ),
     )
     redacao_gerar_parser.add_argument(
@@ -1176,12 +1166,6 @@ def main() -> None:
                     args.published_at,
                     args.confirmar,
                 ))
-        if args.command == "run-report-test":
-            output_dir = run_report_test(resume_run_id=args.resume)
-            print("Teste concluído. Arquivos salvos localmente em:")
-            print(output_dir)
-            print("Não publique os resultados nem a chave de cegamento antes da avaliação.")
-            raise SystemExit(0)
     except (
         ValueError,
         TypeError,
@@ -1190,7 +1174,6 @@ def main() -> None:
         sqlite3.Error,
         CBFSourceError,
         EditorialSourceError,
-        ModelEvaluationError,
         VaultError,
         SignalInputError,
         ResearchInputError,

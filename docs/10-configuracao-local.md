@@ -63,19 +63,18 @@ cp .env.example .env
 
 Edite o arquivo `.env` e informe o token GitHub em `GITHUB_TOKEN`. Mantenha o restante como está, salvo necessidade explícita. O arquivo `.env` é ignorado pelo Git.
 
-O motor padrão é o **DeepSeek V4.1 Flash Free** pelo runtime local do OpenCode, com custo zero. Ele não exige `OPENROUTER_API_KEY`. O padrão já fica em:
+O motor padrão é o **DeepSeek V4.1 Flash Free** pelo runtime local do OpenCode, com custo zero. Ele não exige chave de API. O padrão já fica em:
 
 ```dotenv
-FLA10_LLM_ENGINE=opencode
 FLA10_WRITING_MODEL=opencode/deepseek-v4.1-flash-free
 FLA10_REVIEW_MODEL=
 ```
 
 `FLA10_OPENCODE_BIN` é opcional; quando vazio, o sistema procura o executável no `PATH` e no runtime local do OpenBot. `FLA10_OPENCODE_TIMEOUT` define o limite de cada geração em segundos (padrão: 600).
 
-A revisão usa `FLA10_REVIEW_MODEL`; quando ausente, usa o mesmo modelo da redação. O OpenRouter continua disponível como alternativa, mas não é o padrão e exige configurar `FLA10_LLM_ENGINE=openrouter`, `OPENROUTER_API_KEY` e um modelo explicitamente.
+A revisão usa `FLA10_REVIEW_MODEL`; quando ausente, usa o mesmo modelo da redação. Não há integração com OpenRouter nem outro provedor pago.
 
-A avaliação comparativa paga está suspensa e só roda com `FLA10_ENABLE_PAID_EVALUATION=1`. O documento histórico está em `docs/11-protocolo-avaliacao-modelos.md`; ele não é pré-requisito do fluxo editorial.
+A avaliação comparativa paga e o comando `run-report-test` foram removidos do projeto.
 
 ## 5. Executar testes locais
 
@@ -85,7 +84,7 @@ ruff check .
 mypy src
 ```
 
-Os testes automatizados não chamam o runtime do OpenCode, não fazem chamadas pagas ao OpenRouter e não exigem chave válida.
+Os testes automatizados não chamam o runtime do OpenCode, não fazem chamadas externas e não exigem chave de API.
 
 O banco local do calendário fica em `data/calendar.db` na raiz do projeto. Para apontar para outro arquivo, use `--database` ou defina a variável `FLA10_DATABASE` no ambiente. O banco é criado automaticamente na primeira execução, com versão de schema registrada em `PRAGMA user_version`; a abertura migra estruturas antigas e recusa bancos de versão mais nova.
 
@@ -119,7 +118,7 @@ O sistema envia o prompt pela entrada padrão do processo e não usa chave de AP
 export FLA10_OPENCODE_BIN="/caminho/para/opencode"
 ```
 
-A avaliação comparativa antiga está desativada. Para executá-la conscientemente, seria necessário configurar a chave OpenRouter e `FLA10_ENABLE_PAID_EVALUATION=1`; esse não é o fluxo padrão.
+Não há avaliação comparativa paga nem integração com OpenRouter no projeto.
 
 ## 8. Produção, revisão e publicação assistida
 

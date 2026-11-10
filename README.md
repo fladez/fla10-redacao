@@ -34,7 +34,6 @@ Calendário e Agenda, Monitoramento e Pautas, Apuração e Verificação, Produ�
 - [Fluxo MVP ponta a ponta](docs/08-fluxo-mvp-ponta-a-ponta.md)
 - [Contratos de dados do MVP](docs/09-contratos-de-dados-mvp.md)
 - [Configuração local](docs/10-configuracao-local.md)
-- [Protocolo de avaliação comparativa](docs/11-protocolo-avaliacao-modelos.md)
 - [Prompt comum do teste de reportagem](docs/12-prompt-comum-teste-reportagem.md)
 - [Pacote documental — A força da Nação](docs/13-caso-teste-a-forca-da-nacao.md)
 
@@ -56,26 +55,17 @@ O motor padrão de produção e revisão é o **DeepSeek V4.1 Flash Free** execu
 opencode/deepseek-v4.1-flash-free
 ```
 
-Ele não usa OpenRouter, não exige chave de API e tem custo zero no ambiente local configurado. O sistema envia o prompt pela entrada padrão do processo, sem colocá-lo na linha de comando.
+Ele não usa OpenRouter, não exige chave de API e tem custo zero no ambiente local configurado. O sistema envia o prompt pela entrada padrão do processo, sem colocá-lo na linha de comando. Não há outro motor configurado.
 
 Variáveis:
 
-- `FLA10_LLM_ENGINE`: `opencode` (padrão) ou `openrouter`.
 - `FLA10_OPENCODE_BIN`: caminho opcional do executável do OpenCode; quando vazio, o sistema procura no `PATH` e no runtime local do OpenBot.
 - `FLA10_OPENCODE_TIMEOUT`: limite em segundos. Padrão: 600.
 - `FLA10_WRITING_MODEL`: modelo de redação. Padrão: `opencode/deepseek-v4.1-flash-free`.
 - `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
 
-O OpenRouter permanece como alternativa opcional, mas não é o padrão. A avaliação comparativa paga está desativada por padrão e só roda com `FLA10_ENABLE_PAID_EVALUATION=1`.
-
-## Avaliação comparativa de modelos
-
-O protocolo comparativo pago foi suspenso. O projeto não precisa dele para operar: a produção e a revisão usam o DeepSeek V4 gratuito. O comando `fla10 run-report-test` recusa a execução sem autorização explícita em `FLA10_ENABLE_PAID_EVALUATION=1`.
-
-O documento histórico permanece em [Protocolo de avaliação comparativa](docs/11-protocolo-avaliacao-modelos.md), sem ser pré-requisito do fluxo editorial.
-
 ## Estado
-Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor padrão de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; a avaliação comparativa paga está desativada por padrão. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
+Fundação técnica, calendário esportivo e Fases 1, 2 e 3 do MVP implementados localmente. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. O motor de produção e revisão é o DeepSeek V4.1 Flash Free pelo OpenCode, com custo zero; não há integração com OpenRouter nem modelos pagos. A publicação ainda não envia conteúdo ao site: o sistema prepara o pacote CMS, exporta arquivos locais e só registra uma matéria como publicada após URL e confirmação verificável. A publicação automática depende de um endpoint autorizado no site.
 
 
 ## Calendário esportivo — operação local inicial
@@ -277,12 +267,10 @@ As fases 2 e 3 geram texto a partir de pauta aprovada e dossiê com recomendaç�
 
 ### Configuração do provedor
 
-- `FLA10_LLM_ENGINE`: `opencode` por padrão, usando o DeepSeek V4.1 Flash Free com custo zero.
 - `FLA10_OPENCODE_BIN`: caminho opcional do executável do OpenCode.
 - `FLA10_OPENCODE_TIMEOUT`: tempo máximo por geração, em segundos. Padrão: 600.
 - `FLA10_WRITING_MODEL`: modelo de redação. Padrão: `opencode/deepseek-v4.1-flash-free`.
 - `FLA10_REVIEW_MODEL`: modelo revisor. Quando ausente, usa o modelo de redação.
-- `OPENROUTER_API_KEY`: necessária apenas se `FLA10_LLM_ENGINE=openrouter`.
 
 O motor padrão não permite fallback silencioso: se o modelo configurado falhar, o comando interrompe. Nenhuma chave é exibida em mensagens de erro ou logs.
 

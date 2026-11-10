@@ -28,23 +28,3 @@ class Settings:
             editorial_branch=os.getenv("EDITORIAL_BRANCH", "main").strip(),
             github_api_url=os.getenv("GITHUB_API_URL", "https://api.github.com").rstrip("/"),
         )
-
-
-@dataclass(frozen=True)
-class OpenRouterSettings:
-    api_key: str
-    api_url: str = "https://openrouter.ai/api/v1"
-
-    @classmethod
-    def from_env(cls) -> "OpenRouterSettings":
-        load_dotenv(find_dotenv(usecwd=True))
-        token = os.getenv("OPENROUTER_API_KEY", "").strip()
-        if not token:
-            raise ValueError(
-                "OPENROUTER_API_KEY não definido. Configure a chave localmente no .env; "
-                "nunca a envie pelo chat nem a versione no Git."
-            )
-        return cls(
-            api_key=token,
-            api_url=os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1").rstrip("/"),
-        )
