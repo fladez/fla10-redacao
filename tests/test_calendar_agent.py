@@ -172,6 +172,24 @@ def test_conflicting_external_identity_does_not_update_event(
         assert len(repository.event_history("evt-001")) == 1
 
 
+def test_matching_event_links_new_external_id(tmp_path: Path) -> None:
+    with CalendarRepository(tmp_path / "calendar.db") as repository:
+        agent = CalendarAgent(repository)
+        original = make_event()
+        repository.save_event(original)
+
+        observation = make_event().model_copy(update={"event_id": "source-event-456"})
+        result = agent.process_observation(
+            observation,
+            provider="flamengo",
+            external_id="partida-456",
+        )
+
+        assert result.action == UpdateAction.UNCHANGED
+        assert result.event_id == "evt-001"
+        assert repository.get_event_by_external_id("flamengo", "partida-456") == original
+
+
 def test_new_event_with_external_id_is_saved_and_linked(
     tmp_path: Path,
 ) -> None:
