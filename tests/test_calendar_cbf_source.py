@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-
 from fla10_agents.calendar.cbf_source import parse_cbf_table_text
 
 
