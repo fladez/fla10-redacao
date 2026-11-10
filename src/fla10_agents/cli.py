@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from fla10_agents.calendar import CalendarAgent, CalendarRepository
-from fla10_agents.calendar.cbf_source import CBFCalendarSource
+from fla10_agents.calendar.cbf_source import CBFCalendarSource, CBFSourceError
 from fla10_agents.config import Settings
 from fla10_agents.editorial.github_reader import EditorialSourceError, GitHubEditorialReader
 from fla10_agents.evaluation import ModelEvaluationError, run_report_test
@@ -166,7 +166,7 @@ def main() -> None:
             print(output_dir)
             print("Não publique os resultados nem a chave de cegamento antes da avaliação.")
             raise SystemExit(0)
-    except (ValueError, EditorialSourceError, ModelEvaluationError) as exc:
+    except (ValueError, CBFSourceError, EditorialSourceError, ModelEvaluationError) as exc:
         print(f"Erro: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 
