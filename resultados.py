@@ -185,12 +185,20 @@ def formatar(jogo: dict[str, Any]) -> str:
     return "\n".join(linhas)
 
 
-def coletar(fetcher: Fetcher = _json) -> tuple[str, str]:
-    """Devolve (ficha pronta, erro). Um dos dois vem vazio."""
+def coletar_jogo(fetcher: Fetcher = _json) -> tuple[dict[str, Any] | None, str]:
+    """Devolve (jogo, erro). Um dos dois vem vazio."""
     try:
         jogo = buscar_ultimo_jogo(fetcher)
     except Exception as erro:  # noqa: BLE001 - fonte fora do ar não derruba o pipeline
-        return "", f"resultado oficial indisponível: {erro}"
+        return None, f"resultado oficial indisponível: {erro}"
     if jogo is None:
-        return "", "nenhum jogo do Flamengo encerrado encontrado nas últimas rodadas"
+        return None, "nenhum jogo do Flamengo encerrado encontrado nas últimas rodadas"
+    return jogo, ""
+
+
+def coletar(fetcher: Fetcher = _json) -> tuple[str, str]:
+    """Devolve (ficha pronta, erro). Um dos dois vem vazio."""
+    jogo, erro = coletar_jogo(fetcher)
+    if jogo is None:
+        return "", erro
     return formatar(jogo), ""

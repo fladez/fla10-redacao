@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 import resultados
 from opencode_llm import OpenCodeLLM
+from pauta import cita_jogo, consultas_de_busca
 from versoes import salvar_versoes, separar_versoes
 
 # 1. Carregar variáveis de ambiente
@@ -104,10 +105,7 @@ def buscar_noticias(consulta: str, limite: int = 8) -> list[str]:
 
 def coletar_apuracao(tema: str) -> tuple[str, list[str]]:
     """Junta notícias de várias consultas, sem repetir manchete, da mais nova à mais antiga."""
-    consultas = [tema]
-    if "flamengo" not in tema.lower():
-        consultas.append(f"Flamengo {tema}")
-    consultas.append("Flamengo escalação e declarações pós-jogo")
+    consultas = consultas_de_busca(tema)
     itens: list[dict] = []
     vistos: set[str] = set()
     falhas: list[str] = []
@@ -200,7 +198,9 @@ if USAR_REACT:
     )
 else:
     print("🔎 Coletando resultado oficial (Cartola/ge.globo)...")
-    ficha, erro_ficha = resultados.coletar()
+    jogo, erro_ficha = resultados.coletar_jogo()
+    ficha = resultados.formatar(jogo) if jogo else ""
+    prioridade = bool(jogo) and cita_jogo(tema_pesquisa, jogo)
     if ficha:
         print("   " + ficha.replace("\n", " | ") + "\n")
     else:
@@ -237,9 +237,15 @@ else:
             "Placar, Gols, Destaques individuais, Declarações pós-jogo e Contexto na tabela. "
             "Indique a data e a fonte de cada informação. Se algum campo não aparecer "
             "no material, escreva 'não encontrado' em vez de supor.\n\n"
-            "A FICHA OFICIAL tem prioridade sobre as notícias: use exatamente o placar, "
-            "as equipes e a data dela e descarte qualquer resultado divergente. "
-            "A lista 'Entraram em campo' mostra quem atuou, não a escalação titular: "
+            + (
+                "A FICHA OFICIAL é o tema desta pauta e tem prioridade sobre as notícias: "
+                "use exatamente o placar, as equipes e a data dela e descarte qualquer "
+                "resultado divergente. "
+                if prioridade
+                else "A FICHA OFICIAL é apenas do último jogo do time masculino e pode não "
+                "ser o tema desta pauta: use-a só se a pauta tratar dessa partida. "
+            )
+            + "A lista 'Entraram em campo' mostra quem atuou, não a escalação titular: "
             "não a apresente como time titular nem invente posições."
         )
     else:
