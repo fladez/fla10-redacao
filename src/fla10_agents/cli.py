@@ -30,11 +30,11 @@ def calendar_process(input_path: str, database_path: str) -> int:
     """Importa uma observação normalizada e atualiza o calendário local."""
     payload = json.loads(Path(input_path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
-        raise ValueError("O arquivo deve conter um objeto JSON.")
+        raise TypeError("O arquivo deve conter um objeto JSON.")
 
     event_data = payload.get("event", payload)
     if not isinstance(event_data, dict):
-        raise ValueError("O campo 'event' deve conter um objeto JSON.")
+        raise TypeError("O campo 'event' deve conter um objeto JSON.")
 
     event = SportsEvent.model_validate(event_data)
     provider = payload.get("provider")
