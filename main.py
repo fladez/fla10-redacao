@@ -329,4 +329,5 @@ else:
         "Confira o texto acima antes de publicar."
     )
 pasta = salvar_versoes(resultado.raw, versoes)
+(pasta / "pauta.txt").write_text(tema_pesquisa + "\n", encoding="utf-8")
 print(f"📁 Arquivos salvos em {pasta.resolve()}")

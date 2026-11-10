@@ -270,7 +270,13 @@ def importar_versao(
     resumo = montar_resumo(corpo)
     seo = montar_seo(titulo, resumo)
     html = render_site_html(corpo)
-    pauta = str(registro.get("pauta") or "").strip() or "pauta não registrada na aprovação"
+    pauta = str(registro.get("pauta") or "").strip()
+    if not pauta:
+        try:
+            pauta = (pasta / "pauta.txt").read_text(encoding="utf-8").strip()
+        except OSError:
+            pauta = ""
+    pauta = pauta or "pauta não registrada na aprovação"
 
     proposal = EditorialProposal(
         proposal_id=f"exports:{pasta.name}",

@@ -95,7 +95,7 @@ Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `complet
 /Users/rcorreas/miniconda3/envs/fla10/bin/streamlit run app.py
 ```
 
-Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. A aprovação é registrada localmente em `aprovada.json` na pasta da execução; nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
+Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. Um seletor lista todas as execuções em `exports/`, então dá para abrir e aprovar o que a rotina pós-jogo gerou, mesmo depois de fechar a página. A aprovação é registrada em `aprovada.json` na pasta da execução e gera o pacote de CMS; a pauta vem do próprio arquivo quando o pipeline grava `pauta.txt`. Nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
 
 ## Pacote de CMS
 

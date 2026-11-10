@@ -1,7 +1,9 @@
 """Interface local da Redação FLA10.
 
 Roda o pipeline (`main.py`) a partir de uma pauta e mostra as quatro versões
-em abas, com registro local da versão aprovada. Não envia nada ao site.
+em abas, inclusive de execuções antigas (por exemplo, as geradas pela rotina
+pós-jogo). A aprovação é registrada na pasta e gera o pacote de CMS. Não envia
+nada ao site.
 
 Uso:
     /Users/rcorreas/miniconda3/envs/fla10/bin/streamlit run app.py
@@ -9,6 +11,7 @@ Uso:
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -21,9 +24,11 @@ from versoes import separar_versoes
 BASE = Path(__file__).resolve().parent
 PYTHON = Path(sys.executable)
 PYTHON_CLI = BASE / ".venv" / "bin" / "python"
-PASTA_SAIDAS = BASE / "exports"
+PASTA_SAIDAS = Path(os.getenv("FLA10_EXPORTS") or (BASE / "exports")).expanduser()
 PASTA_PACOTES = PASTA_SAIDAS / "pacotes"
-BANCO_EDITORIAL = BASE / "data" / "editorial.db"
+BANCO_EDITORIAL = Path(
+    os.getenv("FLA10_EDITORIAL_DATABASE") or (BASE / "data" / "editorial.db")
+).expanduser()
 
 
 def hash_versao(texto: str) -> str:
@@ -54,6 +59,144 @@ def montar_pacote(pasta: Path, versao: int) -> subprocess.CompletedProcess[str]:
         text=True,
         check=False,
     )
+
+
+def listar_execucoes() -> list[Path]:
+    """Execuções com texto completo, da mais nova para a mais antiga."""
+    pastas = [
+        pasta
+        for pasta in PASTA_SAIDAS.glob("redacao-*")
+        if pasta.is_dir() and (pasta / "completa.md").is_file()
+    ]
+    return sorted(pastas, key=lambda pasta: pasta.stat().st_mtime, reverse=True)
+
+
+def ler_registro(pasta: Path) -> dict:
+    try:
+        return json.loads((pasta / "aprovada.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def ler_pauta(pasta: Path, registro: dict) -> str:
+    """Pauta registrada na aprovação ou gravada pela execução do pipeline."""
+    if registro.get("pauta"):
+        return str(registro["pauta"])
+    try:
+        return (pasta / "pauta.txt").read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def mostrar_pacote(destino: Path) -> None:
+    """Downloads do pacote já gerado, sem repetir o processamento."""
+    artigo = destino / "article.md"
+    site = destino / "site-news.json"
+    if artigo.is_file():
+        st.download_button(
+            "Baixar article.md",
+            artigo.read_text(encoding="utf-8"),
+            file_name=f"{destino.name}.md",
+            key=f"baixar-artigo-{destino.name}",
+        )
+    if site.is_file():
+        st.download_button(
+            "Baixar site-news.json",
+            site.read_text(encoding="utf-8"),
+            file_name=f"{destino.name}-site-news.json",
+            key=f"baixar-site-{destino.name}",
+        )
+
+
+def aprovar(pasta: Path, versao: int, corpo: str, pauta: str) -> None:
+    """Grava a aprovação com o hash do texto e monta o pacote de CMS."""
+    registro = {
+        "pasta": pasta.name,
+        "versao": versao,
+        "aprovada_em": datetime.now().isoformat(timespec="seconds"),
+        "pauta": pauta.strip(),
+        "conteudo_sha256": hash_versao(corpo),
+    }
+    (pasta / "aprovada.json").write_text(
+        json.dumps(registro, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    st.success(
+        f"Versão {versao} marcada como aprovada em {pasta.name}. "
+        "Nada foi publicado: o envio ao site continua manual."
+    )
+
+    pacote = montar_pacote(pasta, versao)
+    if pacote.returncode != 0:
+        st.error("A aprovação foi salva, mas o pacote de CMS não foi gerado.")
+        st.code((pacote.stderr or pacote.stdout)[-3000:])
+        return
+
+    dados = json.loads(pacote.stdout)
+    st.info(f"Pacote de CMS pronto em `{dados['output']}`.")
+    st.caption(
+        f"Título: {dados['title']} · slug: {dados['slug']} · status: {dados['status']}"
+    )
+    mostrar_pacote(Path(dados["output"]))
+    with st.expander("Detalhes do pacote"):
+        st.code(pacote.stdout)
+
+
+def mostrar_execucao(pasta: Path, log: str | None = None) -> None:
+    completa = (pasta / "completa.md").read_text(encoding="utf-8")
+    versoes = separar_versoes(completa)
+
+    if len(versoes) == 4:
+        st.caption("Quantidade esperada de versões confirmada.")
+    else:
+        st.warning("Quantidade diferente de 4: confira o texto antes de aprovar.")
+
+    abas = st.tabs([f"Versão {numero}" for numero, _ in versoes] or ["Sem versões"])
+    for aba, (numero, corpo) in zip(abas, versoes):
+        with aba:
+            st.markdown(corpo)
+            st.download_button(
+                "Baixar Markdown",
+                corpo,
+                file_name=f"versao-{numero}.md",
+                key=f"baixar-{pasta.name}-{numero}",
+            )
+
+    st.divider()
+    st.subheader("Aprovação")
+    if not versoes:
+        return
+
+    registro = ler_registro(pasta)
+    if registro.get("versao"):
+        st.info(
+            f"Versão {registro['versao']} aprovada em "
+            f"{registro.get('aprovada_em', 'data não registrada')}."
+        )
+        gerado = PASTA_PACOTES / f"{pasta.name}-v{registro['versao']}"
+        if (gerado / "article.md").is_file():
+            st.caption(f"Pacote já gerado em `{gerado}`.")
+            mostrar_pacote(gerado)
+
+    pauta_salva = ler_pauta(pasta, registro)
+    pauta_aprovacao = st.text_input(
+        "Pauta desta execução",
+        value=pauta_salva,
+        placeholder="Ex.: Flamengo 3 x 1 Grêmio — resultado e declarações",
+        key=f"pauta-{pasta.name}",
+    )
+    escolhida = st.selectbox(
+        "Versão aprovada",
+        options=[numero for numero, _ in versoes],
+        format_func=lambda numero: f"Versão {numero}",
+        key=f"versao-{pasta.name}",
+    )
+    if st.button("Registrar aprovação local", key=f"aprovar-{pasta.name}"):
+        aprovar(pasta, escolhida, dict(versoes).get(escolhida, ""), pauta_aprovacao)
+
+    if log:
+        with st.expander("Log do pipeline"):
+            st.code(log[-8000:])
+
 
 st.set_page_config(page_title="Redação FLA10", page_icon="🔴", layout="wide")
 
@@ -90,82 +233,27 @@ if gerar:
         st.code((processo.stderr or processo.stdout)[-4000:])
         st.stop()
 
-    pastas = sorted(
-        (p for p in PASTA_SAIDAS.glob("redacao-*") if p.stat().st_mtime >= inicio.timestamp()),
-        key=lambda p: p.stat().st_mtime,
-    )
-    if not pastas:
+    novas = [p for p in listar_execucoes() if p.stat().st_mtime >= inicio.timestamp()]
+    if not novas:
         st.warning("Nenhum arquivo novo em exports/. Veja o log abaixo.")
         st.code(processo.stdout[-4000:])
         st.stop()
 
-    pasta = pastas[-1]
-    completa = (pasta / "completa.md").read_text(encoding="utf-8")
-    versoes = separar_versoes(completa)
+    nova = max(novas, key=lambda pasta: pasta.stat().st_mtime)
+    total = len(separar_versoes((nova / "completa.md").read_text(encoding="utf-8")))
+    st.success(f"{total} versões geradas em {nova.name}")
+    st.session_state.setdefault("logs", {})[nova.name] = processo.stdout
+    st.session_state["execucao"] = nova.name
 
-    st.success(f"{len(versoes)} versões geradas em {pasta.name}")
-    if len(versoes) == 4:
-        st.caption("Quantidade esperada de versões confirmada.")
-    else:
-        st.warning("Quantidade diferente de 4: confira o texto antes de aprovar.")
+execucoes = listar_execucoes()
+if not execucoes:
+    st.info("Nenhuma execução em exports/. Gere a primeira pauta acima.")
+    st.stop()
 
-    abas = st.tabs([f"Versão {numero}" for numero, _ in versoes] or ["Sem versões"])
-    for aba, (numero, corpo) in zip(abas, versoes):
-        with aba:
-            st.markdown(corpo)
-            st.download_button(
-                "Baixar Markdown",
-                corpo,
-                file_name=f"versao-{numero}.md",
-                key=f"baixar-{pasta.name}-{numero}",
-            )
+nomes = [pasta.name for pasta in execucoes]
+if st.session_state.get("execucao") not in nomes:
+    st.session_state["execucao"] = nomes[0]
 
-    st.divider()
-    st.subheader("Aprovação")
-    if versoes:
-        escolhida = st.selectbox(
-            "Versão aprovada",
-            options=[numero for numero, _ in versoes],
-            format_func=lambda n: f"Versão {n}",
-        )
-        if st.button("Registrar aprovação local"):
-            corpo_aprovado = dict(versoes).get(escolhida, "")
-            registro = {
-                "pasta": pasta.name,
-                "versao": escolhida,
-                "aprovada_em": datetime.now().isoformat(timespec="seconds"),
-                "pauta": pauta.strip(),
-                "conteudo_sha256": hash_versao(corpo_aprovado),
-            }
-            (pasta / "aprovada.json").write_text(
-                json.dumps(registro, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-            st.success(
-                f"Versão {escolhida} marcada como aprovada em {pasta.name}. "
-                "Nada foi publicado: o envio ao site continua manual."
-            )
-
-            pacote = montar_pacote(pasta, escolhida)
-            if pacote.returncode != 0:
-                st.error("A aprovação foi salva, mas o pacote de CMS não foi gerado.")
-                st.code((pacote.stderr or pacote.stdout)[-3000:])
-            else:
-                dados = json.loads(pacote.stdout)
-                st.info(f"Pacote de CMS pronto em `{dados['output']}`.")
-                st.caption(
-                    f"Título: {dados['title']} · slug: {dados['slug']} · "
-                    f"status: {dados['status']}"
-                )
-                artigo = Path(dados["output"]) / "article.md"
-                if artigo.is_file():
-                    st.download_button(
-                        "Baixar article.md do pacote",
-                        artigo.read_text(encoding="utf-8"),
-                        file_name=f"{dados['slug']}.md",
-                        key=f"pacote-{dados['package_id']}",
-                    )
-                with st.expander("Detalhes do pacote"):
-                    st.code(pacote.stdout)
-
-    with st.expander("Log do pipeline"):
-        st.code(processo.stdout[-8000:])
+escolhida = st.selectbox("Execução em exibição", nomes, key="execucao")
+pasta = dict(zip(nomes, execucoes))[escolhida]
+mostrar_execucao(pasta, log=st.session_state.get("logs", {}).get(escolhida))
