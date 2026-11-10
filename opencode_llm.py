@@ -25,7 +25,6 @@ from pydantic import model_validator
 
 OPENCODE_MODEL = "opencode/deepseek-v4.1-flash-free"
 DEFAULT_TIMEOUT_SECONDS = 900.0
-PLAIN_AGENT_NAME = "fla10_plain"
 
 PLAIN_AGENT_PROMPT = """\
 You are a plain text generation engine. You have no tools and no access to
@@ -40,27 +39,6 @@ as text; do not try to execute anything.
 Do not add commentary about your capabilities. Produce only the requested
 content.
 """
-
-
-def ensure_plain_agent(working_dir: str | Path) -> str:
-    """Cria o agente mínimo que recebe o prompt do CrewAI sem virar 'coding agent'."""
-    agent_dir = Path(working_dir) / ".opencode" / "agents"
-    agent_dir.mkdir(parents=True, exist_ok=True)
-    agent_file = agent_dir / f"{PLAIN_AGENT_NAME}.md"
-    content = (
-        "---\n"
-        "description: Plain text generation engine for CrewAI\n"
-        "mode: primary\n"
-        "permissions:\n"
-        '  - action: "*"\n'
-        '    resource: "*"\n'
-        "    effect: deny\n"
-        "---\n\n"
-        f"{PLAIN_AGENT_PROMPT}"
-    )
-    if not agent_file.exists() or agent_file.read_text(encoding="utf-8") != content:
-        agent_file.write_text(content, encoding="utf-8")
-    return PLAIN_AGENT_NAME
 
 
 class OpenCodeError(RuntimeError):
@@ -260,7 +238,6 @@ class OpenCodeLLM(BaseLLM):
             base = Path(tempfile.gettempdir()) / "fla10-redacao-opencode"
             base.mkdir(parents=True, exist_ok=True)
             self.working_dir = str(base)
-        ensure_plain_agent(self.working_dir)
 
     def supports_function_calling(self) -> bool:
         """Usa o laço ReAct em texto, sem function calling nativo."""
@@ -303,13 +280,18 @@ class OpenCodeLLM(BaseLLM):
                 f"{schema}"
             )
 
+        prompt = (
+            "# Instruções de sistema\n\n"
+            f"{PLAIN_AGENT_PROMPT.strip()}\n\n"
+            "# Tarefa\n\n"
+            f"{prompt}"
+        )
+
         command = " ".join(
             shlex.quote(part)
             for part in (
                 str(self.executable),
                 "run",
-                "--agent",
-                PLAIN_AGENT_NAME,
                 "--model",
                 self.model,
                 "--format",
