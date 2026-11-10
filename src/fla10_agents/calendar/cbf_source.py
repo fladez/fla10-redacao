@@ -18,7 +18,7 @@ class CBFSourceError(RuntimeError):
 
 
 _UFS = [
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "GO", "MA", "MT", "MS",
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
     "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR",
     "SC", "SP", "SE", "TO",
 ]
@@ -99,7 +99,7 @@ def parse_cbf_table_text(
             sources=[source],
             last_verified_at=verified_at,
         )
-        results.append((event, external_id))
+        results.append((event, f"{season}:{external_id}"))
 
     if not results:
         raise CBFSourceError(
