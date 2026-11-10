@@ -61,7 +61,7 @@ O comando envia o mesmo prompt e o mesmo dossiê aos três modelos definidos no 
 A execução real ainda depende de configurar a chave e validar a primeira rodada. Consulte [Configuração local](docs/10-configuracao-local.md).
 
 ## Estado
-Fundação técnica, avaliação comparativa e importação de calendário implementadas. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação real dos modelos depende da configuração segura da chave OpenRouter. Os agentes editoriais completos, o parser de pautas e a publicação automática ainda não estão implementados.
+Fundação técnica, avaliação comparativa, calendário esportivo e Fase 1 do MVP (monitoramento, pautas e apuração) implementados. Ruff, mypy e a suíte de testes passam em Python 3.11 e 3.12. A comparação real dos modelos depende da configuração segura da chave OpenRouter. A redação completa e a publicação automática continuam fora do escopo: dependem de decisão de modelo e de um endpoint autorizado no site.
 
 
 ## Calendário esportivo — operação local inicial
@@ -104,7 +104,9 @@ Consultar os eventos registrados:
 fla10 calendar list
 ```
 
-O comando não busca fontes na internet nem inventa dados ausentes. O arquivo deve conter informações já apuradas; cada execução preserva o histórico de alterações. Uma observação recusada por conflito de identidade não altera o banco e faz o comando terminar com código 1. O banco padrão fica em `data/calendar.db` e pode ser alterado com `--database`.### Importação de jogos pela tabela oficial da CBF
+O comando não busca fontes na internet nem inventa dados ausentes. O arquivo deve conter informações já apuradas; cada execução preserva o histórico de alterações. Uma observação recusada por conflito de identidade não altera o banco e faz o comando terminar com código 1. O banco padrão fica em `data/calendar.db` e pode ser alterado com `--database`.
+
+### Importação de jogos pela tabela oficial da CBF
 
 Para competições cobertas pela CBF, o calendário pode importar partidas do Flamengo diretamente de um PDF oficial de tabela detalhada. O importador preserva o número de referência do jogo como identificador externo e registra o endereço do documento como fonte de evidência.
 
@@ -135,3 +137,122 @@ Cada execução registra provedor, URL do PDF, início, fim, status e a contagem
 O banco padrão é `data/calendar.db` na raiz do projeto, independentemente da pasta em que o comando é executado. Para usar outro arquivo, informe `--database` ou defina `FLA10_DATABASE`.
 
 O banco usa WAL e timeout de bloqueio, o que permite leitura simultânea por outros processos. O schema tem versão (`PRAGMA user_version`); abrir um banco criado por uma versão mais nova falha com mensagem explícita.
+
+## Monitoramento, pautas e apuração — Fase 1
+
+A Fase 1 lê o vault editorial local em modo somente leitura, cruza agenda e sinais de monitoramento, propõe pautas, aponta redundância e monta dossiês de apuração. Nenhuma proposta é aprovada e nenhum texto é publicado automaticamente.
+
+### Configuração
+
+- `EDITORIAL_VAULT_PATH`: raiz do vault. Padrão: `~/Documents/Redacao-Fla10`.
+- `FLA10_EDITORIAL_DATABASE`: banco do estado editorial. Padrão: `data/editorial.db` na raiz do projeto.
+- `FLA10_DATABASE`: banco do calendário. Padrão: `data/calendar.db` na raiz do projeto.
+
+O vault não é alterado. Pautas, sinais, dossiês e decisões ficam apenas no banco editorial local.
+
+### Consultar o vault e as pautas
+
+```bash
+fla10 vault status
+fla10 pautas parse
+```
+
+`vault status` mostra o commit lido, os documentos carregados e a contagem de pautas por tipo. `pautas parse` extrai títulos, estado, janela, foco e checagens das notas, sem gravar nada. Pautas repetidas entre o painel e o registro de reservas são contadas uma única vez.
+
+### Alimentar sinais de monitoramento
+
+O arquivo de entrada deve conter uma lista de sinais ou um objeto com a chave `signals`:
+
+```json
+{
+  "signals": [
+    {
+      "provider": "rss",
+      "external_id": "noticia-123",
+      "title": "Flamengo confirma retorno de jogador",
+      "summary": "Atleta voltou aos treinos com o grupo.",
+      "url": "https://exemplo.com/noticia",
+      "published_at": "2026-11-10T12:00:00-03:00",
+      "teams": ["Flamengo"],
+      "topics": ["treino"],
+      "players": []
+    }
+  ]
+}
+```
+
+```bash
+fla10 sinais add --input sinais.json --provider rss
+fla10 sinais list --limit 20
+```
+
+O provedor pode vir no arquivo ou ser fixado com `--provider`. A combinação provedor + identificador externo evita duplicatas: um sinal repetido atualiza o conteúdo e a data de última observação, sem criar outra linha. Datas precisam incluir fuso horário.
+
+### Gerar e decidir propostas de pauta
+
+```bash
+fla10 pipeline run --event-days 7 --signal-days 3
+fla10 pautas list --status awaiting_human
+fla10 pautas approve ID_DA_PROPOSTA
+fla10 pautas reject ID_DA_PROPOSTA
+```
+
+O pipeline combina:
+
+- jogos do Flamengo na janela de `--event-days` para propostas de serviço;
+- sinais recentes que mencionem o Flamengo na janela de `--signal-days` para propostas de última notícia;
+- pautas do vault e matérias já publicadas para a checagem de redundância.
+
+Cada proposta registra pergunta editorial, ângulo, fatos confirmados, informações a verificar, fontes iniciais, janela, prioridade e risco de redundância. A deduplicação usa o evento ou o sinal de origem; executar o pipeline de novo atualiza o conteúdo sem duplicar propostas e preserva a decisão humana já registrada.
+
+A aprovação é sempre humana. `approve` e `reject` apenas registram a decisão no banco; o vault não é alterado.
+
+### Montar o dossiê de apuração
+
+O dossiê só é montado para proposta com decisão `approved`. Uma proposta pendente ou rejeitada retorna erro sem gravar dossiê.
+
+```bash
+fla10 dossie build ID_DA_PROPOSTA --claims claims.json --contradiction "Horário divergente em fonte secundária."
+```
+
+Formato de `claims.json`:
+
+```json
+{
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_text": "O jogo está marcado para 12 de novembro de 2026.",
+      "classification": "confirmed",
+      "evidence": [
+        {
+          "url": "https://exemplo.com/tabela",
+          "source_type": "tabela oficial",
+          "author_or_institution": "CBF",
+          "accessed_at": "2026-11-10T10:00:00-03:00",
+          "supports": ["data"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Classificações aceitas: `confirmed`, `attributed`, `context`, `analysis`, `hypothesis` e `unconfirmed`. O dossiê separa fatos utilizáveis, informações que exigem atribuição, análise admissível e afirmações excluídas. Fato confirmado sem evidência e atribuição sem autor identificado viram lacunas críticas. O resultado recomenda `pronto para redação`, `revisar contradições` ou `apuração insuficiente`.
+
+### Registrar matérias publicadas
+
+```bash
+fla10 publicacoes add --title "Flamengo x Palmeiras: onde assistir" --url "https://exemplo.com/materia" --published-at "2026-11-11T10:00:00-03:00"
+fla10 publicacoes list
+```
+
+Esse registro alimenta a comparação de redundância. A data de publicação precisa incluir fuso horário. O comando não publica nada: apenas registra uma matéria que já saiu.
+
+### Limites desta fase
+
+- Não redige matérias completas.
+- Não altera o vault nem o painel de pautas.
+- Não publica, não envia e não agenda conteúdo externo.
+- A nota de redundância é uma triagem por sobreposição de termos; a decisão continua humana.
+- Sinais de monitoramento ainda são ingeridos por arquivo JSON; não há coletor de fontes nesta fase.

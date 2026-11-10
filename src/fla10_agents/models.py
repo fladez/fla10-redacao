@@ -113,6 +113,33 @@ class EditorialProposal(BaseModel):
     redundancy_risk: str = "unknown"
     priority_recommendation: str = "normal"
     editorial_decision: str = "awaiting_human"
+    window: str | None = None
+    dedupe_key: str | None = None
+    created_at: datetime | None = None
+
+    @field_validator("created_at")
+    @classmethod
+    def validate_created_at(cls, value: datetime | None) -> datetime | None:
+        return _require_aware_datetime(value)
+
+
+class MonitoringSignal(BaseModel):
+    signal_id: str = Field(default_factory=lambda: str(uuid4()))
+    provider: str
+    external_id: str
+    title: str
+    summary: str | None = None
+    url: HttpUrl | None = None
+    published_at: datetime
+    topics: list[str] = Field(default_factory=list)
+    teams: list[str] = Field(default_factory=list)
+    players: list[str] = Field(default_factory=list)
+    last_seen_at: datetime
+
+    @field_validator("published_at", "last_seen_at")
+    @classmethod
+    def validate_signal_dates(cls, value: datetime) -> datetime:
+        return _require_aware_datetime(value)  # type: ignore[return-value]
 
 
 class ClaimEvidence(BaseModel):

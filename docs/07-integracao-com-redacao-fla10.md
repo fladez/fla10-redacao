@@ -58,6 +58,8 @@ A integração deverá:
 - registrar, em cada tarefa, os caminhos e o commit editorial consultados;
 - tratar falha de leitura como bloqueio: não simular que as regras foram consultadas.
 
+Na operação local da Fase 1, o adaptador lê o clone do vault em modo somente leitura e identifica o commit com `git rev-parse HEAD`. O adaptador GitHub continua disponível para `fla10 check-editorial` e para execuções sem clone local. O cache derivado previsto acima não é necessário nesta fase, porque o vault local já é a fonte consultada e o commit é registrado a cada leitura.
+
 O cache é uma otimização técnica, não uma segunda fonte de verdade. Não será editável como painel editorial e não receberá decisões manuais independentes.
 
 ## 5. Painel de pautas: leitura estruturada sem duplicação

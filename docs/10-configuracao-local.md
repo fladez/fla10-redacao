@@ -79,6 +79,10 @@ Os testes automatizados não fazem chamadas pagas ao OpenRouter e não exigem um
 
 O banco local do calendário fica em `data/calendar.db` na raiz do projeto. Para apontar para outro arquivo, use `--database` ou defina a variável `FLA10_DATABASE` no ambiente. O banco é criado automaticamente na primeira execução, com versão de schema registrada em `PRAGMA user_version`; a abertura migra estruturas antigas e recusa bancos de versão mais nova.
 
+O estado editorial (sinais, propostas, dossiês e matérias publicadas) fica em `data/editorial.db`. Para outro arquivo, use `--database` nos comandos editoriais ou defina `FLA10_EDITORIAL_DATABASE`.
+
+A Fase 1 lê o vault local em modo somente leitura. Por padrão, usa `~/Documents/Redacao-Fla10`; para outro caminho, defina `EDITORIAL_VAULT_PATH` ou use `--vault` nos comandos `vault` e `pautas parse`. O vault nunca é alterado.
+
 ## 6. Verificar acesso real ao repositório editorial
 
 Com o ambiente virtual ativo e o token configurado no `.env`, executar:
