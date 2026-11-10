@@ -29,6 +29,7 @@ from fla10_agents.publication import (
     export_package,
     slugify,
 )
+from fla10_agents.site_payload import pacote_do_site
 from fla10_agents.writing.draft import render_site_html
 from fla10_agents.writing.review import READY_VERDICT
 
@@ -38,7 +39,6 @@ FORMATO_PADRAO = "noticia"
 MIN_CARACTERES_CORPO = 200
 LIMITE_SUBTITULO = 220
 LIMITE_META = 155
-LIMITE_TITULO_SEO = 60
 LIMITE_RESUMO = 480
 
 PALAVRAS_VAZIAS = frozenset({
@@ -203,7 +203,7 @@ def montar_seo(titulo: str, resumo: str) -> SeoPackage:
             secundarias.append(palavra)
 
     return SeoPackage(
-        title=_recortar(titulo, LIMITE_TITULO_SEO),
+        title=titulo,
         meta_description=_recortar(resumo, LIMITE_META),
         primary_keyword="Flamengo",
         secondary_keywords=secundarias[:5],
@@ -342,5 +342,10 @@ def importar_versao(
 
     with EditorialRepository(database_path) as store:
         exportado = store.get_package(identificador) or pacote
+
+    (destino / "site-news.json").write_text(
+        json.dumps(pacote_do_site(exportado), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     return exportado, destino

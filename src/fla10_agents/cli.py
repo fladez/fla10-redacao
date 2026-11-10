@@ -603,7 +603,13 @@ def publicacao_importar(
     )
     payload = package_summary(package)
     payload["output"] = str(destination)
-    payload["files"] = ["article.html", "article.md", "package.json", "metadata.json"]
+    payload["files"] = [
+        "article.html",
+        "article.md",
+        "package.json",
+        "metadata.json",
+        "site-news.json",
+    ]
     _print_json(payload)
     return 0
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from fla10_agents import site_payload
 from fla10_agents.cli import main
 from fla10_agents.editorial.store import EditorialRepository
 from fla10_agents.publication import PublicationError
@@ -200,6 +201,34 @@ def test_reimportar_pacote_publicado_e_bloqueado(tmp_path) -> None:
         importar(tmp_path, pasta)
 
 
+def test_importar_gera_documento_no_formato_do_site(tmp_path) -> None:
+    pasta = escrever_execucao(tmp_path)
+
+    _, destino = importar(tmp_path, pasta)
+
+    dados = json.loads((destino / "site-news.json").read_text(encoding="utf-8"))
+    documento = dados["documento"]
+    assert documento["status"] == "draft"
+    assert documento["mainCategory"] == "Futebol"
+    assert documento["category"] == "Feminino"
+    assert documento["title"].startswith("Flamengo decide")
+    assert documento["excerpt"].startswith("A CBF confirmou")
+    assert documento["content"].startswith("A Confederação")
+    assert documento["focusKeyword"] == "Flamengo"
+    assert documento["secondaryKeywords"] == "Copa, Brasil, Feminina, Luso-Brasileiro"
+    assert documento["image"] == ""
+    assert dados["destino"].startswith("coleção news")
+    assert any("imagem" in pendencia.lower() for pendencia in dados["pendencias"])
+
+
+def test_subcategoria_reconhece_base_e_profissional() -> None:
+    assert site_payload.subcategoria("Flamengo vence o clássico", "jogo do time principal") == (
+        "Profissional"
+    )
+    assert site_payload.subcategoria("Sub-20 goleia no Brasileirão", "") == "Base"
+    assert site_payload.subcategoria("Final feminina no Luso", "") == "Feminino"
+
+
 def test_cli_importar_imprime_pacote(tmp_path, monkeypatch, capsys) -> None:
     pasta = escrever_execucao(tmp_path)
     banco = tmp_path / "editorial.db"
@@ -226,5 +255,11 @@ def test_cli_importar_imprime_pacote(tmp_path, monkeypatch, capsys) -> None:
     assert fim.value.code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "exported"
-    assert payload["files"] == ["article.html", "article.md", "package.json", "metadata.json"]
+    assert payload["files"] == [
+        "article.html",
+        "article.md",
+        "package.json",
+        "metadata.json",
+        "site-news.json",
+    ]
     assert Path(payload["output"]).is_dir()

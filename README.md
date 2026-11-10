@@ -99,7 +99,9 @@ Abre uma página com campo de pauta, botão de geração, quatro abas (uma por v
 
 ## Pacote de CMS
 
-Aprovar na interface gera o pacote da versão escolhida em `exports/pacotes/<execução>-v<versão>/`, com `article.md`, `article.html`, `package.json` e `metadata.json` (título, slug, resumo para IA, SEO e textos sociais). O pacote também entra no banco editorial, então `fla10 publicacao list` e `fla10 publicacao registrar` funcionam nele.
+Aprovar na interface gera o pacote da versão escolhida em `exports/pacotes/<execução>-v<versão>/`, com `article.md`, `article.html`, `package.json`, `metadata.json` e `site-news.json` (título, slug, resumo para IA, SEO e textos sociais). O pacote também entra no banco editorial, então `fla10 publicacao list` e `fla10 publicacao registrar` funcionam nele.
+
+`site-news.json` traduz o pacote para o documento da coleção `news` do Firestore, que é de onde o site lê as matérias: `mainCategory`, `category` sugerida (Profissional/Feminino/Base), `content` em HTML, `metaTitle`, `metaDescription`, `focusKeyword` e `secondaryKeywords`. O documento sai como `status: draft`, com imagem vazia, autor vazio e `publishedAt` nulo; o arquivo lista essas pendências em vez de preencher com dado inventado. Nada é gravado no Firestore.
 
 ```bash
 # monta o pacote de uma versão já aprovada, sem interface
