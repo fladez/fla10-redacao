@@ -122,6 +122,7 @@ def main() -> None:
         _responder(decisao)
 
     inicio = time.monotonic()
+    inicio_relogio = time.time()
     processo = subprocess.run(
         [sys.executable, str(BASE / "main.py"), decisao["pauta"]],
         cwd=BASE,
@@ -150,7 +151,7 @@ def main() -> None:
             1,
         )
 
-    pasta = _pasta_nova(inicio)
+    pasta = _pasta_nova(inicio_relogio)
     if pasta is None:
         _responder({"status": "falhou", "log": str(log), "erro": "nenhuma pasta nova em exports"},
                    1)

@@ -1,6 +1,7 @@
 """Testes da rotina pós-jogo, sem chamar o pipeline."""
 
 import json
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -80,6 +81,18 @@ def test_cli_sem_executar_nao_chama_pipeline(tmp_path, monkeypatch, capsys) -> N
     payload = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert payload["status"] == "executar"
     assert not (tmp_path / "marcador.json").exists()
+
+
+def test_rotina_nao_le_pasta_antiga_como_nova(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(rotina_pos_jogo, "BASE", tmp_path)
+    antiga = tmp_path / "exports" / "redacao-2026-11-01-1200"
+    antiga.mkdir(parents=True)
+    os.utime(antiga, (1_000, 1_000))
+    nova = tmp_path / "exports" / "redacao-2026-11-10-2300"
+    nova.mkdir()
+    os.utime(nova, (2_000, 2_000))
+
+    assert rotina_pos_jogo._pasta_nova(1_500) == nova
 
 
 def test_cli_sem_dados_falha(tmp_path, monkeypatch, capsys) -> None:
