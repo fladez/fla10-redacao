@@ -162,7 +162,10 @@ gravado no Firestore pelo sistema.
   `<p>` para inserir anúncio no meio. O texto é exibido; o posicionamento do
   anúncio pode variar.
 - A renderização visual no navegador não foi conferida nesta entrega.
-- O CI nunca rodou no GitHub: nada foi enviado ao remoto.
+- Estes commits ainda não foram enviados ao remoto. O `origin/main` tem outra
+  linha de trabalho (40 commits à frente do merge-base), com conflitos em
+  `cli.py`, `config.py`, `models.py`, `README.md` e alguns documentos: mesclar
+  exige decisão humana sobre qual linha é a canônica.
 
 ## 9. Quando algo falha
 
