@@ -12,7 +12,8 @@ COMMON_DOCUMENTS = (
     "01 - Manual Editorial/Estilo e Formatação.md",
     "01 - Manual Editorial/Revisão e Controle de Qualidade.md",
     "02 - Operação/Prevenção de Redundância Editorial.md",
-    "09 - Modelos/Modelo de Matéria para o Site.md",
+    # O modelo da casa mora em 03 - Formatos; o vault não tem cópia em 09 - Modelos.
+    "03 - Formatos/Modelo de Matéria para o Site.md",
 )
 
 FORMAT_DOCUMENTS = {
@@ -38,7 +39,7 @@ def load_writing_context(
     vault_root: Path | None = None,
 ) -> VaultContext:
     reader = LocalVaultReader(vault_root)
-    paths = (*COMMON_DOCUMENTS, format_document(format_name))
+    paths = tuple(dict.fromkeys((*COMMON_DOCUMENTS, format_document(format_name))))
     context = reader.read(paths)
 
     total = sum(len(content) for content in context.files.values())
