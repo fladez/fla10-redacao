@@ -221,4 +221,17 @@ um teste próprio no lado local.
 
 Como os dois lados nasceram do mesmo ponto (`c2a0e92`), publicar a linha local
 exige escolher entre criar uma branch nova no remoto ou substituir o
-`origin/main`. Nenhum dos dois foi feito.
+`origin/main`. Nenhum dos dois foi feito no `rcorreas/Fla10-Agents`.
+
+### Destino da publicação
+
+A linha local foi publicada em **`https://github.com/fladez/fla10-redacao`**
+(branch `main`, commit `027790d`, 89 arquivos, repositório público). O CI
+(`tests`) passou: https://github.com/fladez/fla10-redacao/actions/runs/42947189316
+
+- `origin` → `fladez/fla10-redacao` (push).
+- `fla10-agents-errado` → `rcorreas/Fla10-Agents` (guardado, sem uso).
+- O clone em `Documents/Projetos/Fla10-Agents-oficial` segue com a outra linha;
+  nada foi mesclado nem alterado lá.
+- O token usado para o push fica no cofre do OpenBot, nunca no chat nem no
+  repositório.
