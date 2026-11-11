@@ -156,6 +156,8 @@ gravado no Firestore pelo sistema.
   o adversário ou pede resultado/placar; isso evita contaminar pauta de outro
   assunto.
 - A qualidade factual depende da apuração; o sistema não inventa dado ausente.
+- O título deve começar com `# ` ou `## `; o prompt pede `# ` e o verificador
+  aceita os dois níveis.
 - O HTML do artigo usa `<br><br>` e `<h3>`; o `RichTextRenderer` do site procura
   `<p>` para inserir anúncio no meio. O texto é exibido; o posicionamento do
   anúncio pode variar.
@@ -183,6 +185,7 @@ gravado no Firestore pelo sistema.
 .venv/bin/mypy src
 ```
 
-Resultado esperado: 222 testes aprovados, Ruff sem achados e mypy sem erros em
-`src`. O pipeline real foi executado ponta a ponta, com 6 tarefas e 4 versões,
-a custo zero.
+Resultado esperado: 226 testes aprovados, Ruff sem achados e mypy sem erros em
+`src`. O pipeline real foi executado ponta a ponta nesta entrega, com 6 tarefas
+e 4 versões, a custo zero, em duas pautas diferentes (uma de bastidores, sem
+ficha de partida, e uma de final da Copa do Brasil Feminina).
