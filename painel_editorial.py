@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import subprocess
+import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,76 @@ import streamlit as st
 
 ETAPAS = ("1. Propostas", "2. Dossiê", "3. Minuta", "4. Revisão", "5. Decisão")
 TEMPO_GERACAO = "cerca de 1 a 2 minutos"
+
+MODELO_CLAIMS: dict[str, Any] = {
+    "claims": [
+        {
+            "claim_id": "c1",
+            "claim_text": "Substitua pelo fato apurado.",
+            "classification": "confirmed",
+            "evidence": [
+                {
+                    "url": "https://exemplo.com/fonte",
+                    "source_type": "site oficial",
+                    "author_or_institution": "Nome da instituição",
+                    "accessed_at": "",
+                    "supports": ["o que esta fonte sustenta"],
+                }
+            ],
+        }
+    ]
+}
+
+# Valores que o painel troca pelo horário do clique.
+ACCESS_PLACEHOLDERS = frozenset({"", "PREENCHER", "AGORA", "AUTO"})
+
+
+def modelo_claims_json() -> str:
+    """Modelo de afirmações para download, com accessed_at em branco."""
+    return json.dumps(MODELO_CLAIMS, ensure_ascii=False, indent=2)
+
+
+def _json_de_texto(texto: str) -> Any:
+    try:
+        return json.loads(texto)
+    except ValueError as exc:
+        raise ValueError(f"JSON inválido: {exc}") from exc
+
+
+def preparar_claims(payload: Any, *, agora: datetime | None = None) -> dict[str, Any]:
+    """Confere o formato mínimo e preenche accessed_at no envio.
+
+    A validação completa continua na CLI. Aqui só evitamos gravar um dossiê
+    com data de acesso vazia, que o schema recusaria.
+    """
+    momento = agora or datetime.now(UTC)
+
+    if isinstance(payload, dict):
+        itens = payload.get("claims")
+        if not isinstance(itens, list):
+            raise TypeError("O JSON precisa ter a lista 'claims'.")
+        normalizado = dict(payload)
+    elif isinstance(payload, list):
+        itens = payload
+        normalizado = {"claims": itens}
+    else:
+        raise TypeError("Envie uma lista de afirmações ou um objeto com 'claims'.")
+
+    for indice, item in enumerate(itens, start=1):
+        if not isinstance(item, dict):
+            raise TypeError(f"Afirmação {indice}: esperado um objeto JSON.")
+        evidencias = item.get("evidence") or []
+        if not isinstance(evidencias, list):
+            raise TypeError(f"Afirmação {indice}: 'evidence' deve ser uma lista.")
+        for evidencia in evidencias:
+            if not isinstance(evidencia, dict):
+                raise TypeError(f"Afirmação {indice}: evidência deve ser um objeto.")
+            valor = str(evidencia.get("accessed_at") or "").strip()
+            if valor.upper() in ACCESS_PLACEHOLDERS:
+                evidencia["accessed_at"] = momento.isoformat()
+
+    return normalizado
+
 
 
 def _cli(
@@ -391,20 +463,88 @@ def render(
         )
         rotulo = "Montar dossiê"
 
+    with st.expander("Afirmações e fontes (opcional)"):
+        st.caption(
+            "Cole ou envie as afirmações apuradas, cada uma com a fonte. Sem "
+            "isso, o dossiê fica só com as checagens da pauta e tende a não "
+            "chegar a 'pronto para redação'."
+        )
+        st.download_button(
+            "Baixar modelo JSON",
+            modelo_claims_json(),
+            file_name="afirmacoes-modelo.json",
+            mime="application/json",
+            key="painel-modelo-claims",
+        )
+        afirmacoes_texto = st.text_area(
+            "Afirmações (JSON)",
+            height=220,
+            placeholder='{"claims": [{"claim_id": "c1", ...}]}',
+            key="painel-claims-texto",
+        )
+        afirmacoes_arquivo = st.file_uploader(
+            "Ou envie um arquivo JSON",
+            type=["json"],
+            key="painel-claims-arquivo",
+        )
+        contradicoes_texto = st.text_area(
+            "Contradições (uma por linha, opcional)",
+            height=80,
+            key="painel-contradicoes",
+        )
+        st.caption(
+            "O campo accessed_at de cada fonte é preenchido com a data e a hora "
+            "do clique no botão do dossiê."
+        )
+
     if st.button(
         rotulo,
         key="painel-montar-dossie",
         disabled=decisao != "approved",
         help="Exige a pauta aprovada." if decisao != "approved" else None,
     ):
-        with st.spinner("Validando afirmações e fontes..."):
-            processo = _cli(
-                python, base, "dossie", "build", escolhida_id, "--database", str(banco)
+        if afirmacoes_arquivo is not None and afirmacoes_texto.strip():
+            st.error("Use o arquivo ou o texto de afirmações, não os dois.")
+        else:
+            bruto = (
+                afirmacoes_arquivo.getvalue().decode("utf-8", errors="replace")
+                if afirmacoes_arquivo is not None
+                else afirmacoes_texto
             )
-        resultado = _valores(processo, "Montar dossiê")
-        if resultado is not None:
-            _aviso(f"Dossiê gravado: {resultado.get('recommendation')}.")
-            st.rerun()
+            processo: subprocess.CompletedProcess[str] | None = None
+            try:
+                payload = (
+                    preparar_claims(_json_de_texto(bruto))
+                    if bruto.strip()
+                    else None
+                )
+            except (TypeError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                with (
+                    st.spinner("Validando afirmações e fontes..."),
+                    tempfile.TemporaryDirectory() as temporaria,
+                ):
+                    argumentos = [
+                        "dossie", "build", escolhida_id,
+                        "--database", str(banco),
+                    ]
+                    if payload is not None:
+                        caminho_claims = Path(temporaria) / "claims.json"
+                        caminho_claims.write_text(
+                            json.dumps(payload, ensure_ascii=False),
+                            encoding="utf-8",
+                        )
+                        argumentos += ["--claims", str(caminho_claims)]
+                    for linha in contradicoes_texto.splitlines():
+                        if linha.strip():
+                            argumentos += ["--contradiction", linha.strip()]
+                    processo = _cli(python, base, *argumentos)
+            if processo is not None:
+                resultado = _valores(processo, "Montar dossiê")
+                if resultado is not None:
+                    _aviso(f"Dossiê gravado: {resultado.get('recommendation')}.")
+                    st.rerun()
 
     # --- 3. Minuta -----------------------------------------------------
     st.subheader(ETAPAS[2])

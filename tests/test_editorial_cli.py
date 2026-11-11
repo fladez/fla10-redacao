@@ -149,7 +149,7 @@ def test_pautas_pipeline_and_dossie_flow(tmp_path, monkeypatch, capsys) -> None:
     )
     assert code == 0, err
     pipeline = json.loads(out)
-    assert pipeline["created"] == 2
+    assert pipeline["created"] == 3
 
     code, out, err = run_cli(
         monkeypatch,
@@ -158,6 +158,9 @@ def test_pautas_pipeline_and_dossie_flow(tmp_path, monkeypatch, capsys) -> None:
     )
     assert code == 0, err
     proposals = json.loads(out)
+    assert "Projeto sobre a base do Flamengo" in {
+        item["title"] for item in proposals
+    }
     proposal_id = proposals[0]["proposal_id"]
 
     code, out, err = run_cli(

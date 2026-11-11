@@ -34,9 +34,9 @@ código e continua sem ser executado automaticamente.
 - Verificação automática de qualidade das versões antes da aprovação.
 - Pacote de CMS com `article.md`, `article.html`, `package.json`,
   `metadata.json` e `site-news.json` (documento `news` para o Firestore).
-- Rotina diária no OpenBot (07:00) que gera as propostas de pauta da agenda,
-  sem modelo e sem custo. As rotinas pós-jogo existem, mas estão desativadas
-  enquanto o escopo for pesquisa e minuta.
+- Rotina diária no OpenBot (07:00) que gera as propostas de pauta da agenda e
+  do vault, sem modelo e sem custo. As rotinas pós-jogo existem, mas estão
+  desativadas enquanto o escopo for pesquisa e minuta.
 - Testes, Ruff e mypy no CI (`.github/workflows/tests.yml`), em Python 3.11 e
   3.12.
 
@@ -91,7 +91,9 @@ tem a área **Pautas e minutas**, em cinco etapas:
    janela, prioridade e risco de redundância. Aprovar aqui é decisão local.
 2. **Dossiê** — um clique monta o dossiê a partir dos fatos confirmados da
    pauta e das fontes do evento; lista fatos utilizáveis, lacunas e
-   contradições. Sem fonte, o fato não entra.
+   contradições. Sem fonte, o fato não entra. O campo "Afirmações e fontes"
+   aceita JSON colado ou arquivo, oferece o modelo para download e preenche
+   `accessed_at` no momento do clique.
 3. **Minuta** — gera só com pauta aprovada e dossiê "pronto para redação".
    Mostra corpo, SEO, textos sociais, fontes e ficha técnica da geração.
 4. **Revisão** — verificação automática (sem modelo) ou revisão independente.
@@ -224,8 +226,9 @@ gravado no Firestore pelo sistema.
   impede a aprovação. A decisão é do editor — o painel mostra o aviso em
   vermelho, mas não bloqueia.
 - O dossiê automático usa os fatos confirmados da pauta e as fontes do evento
-  na agenda. Afirmações adicionais só entram pelo `dossie build --claims`; o
-  painel não tem campo para colar afirmações.
+  na agenda. Afirmações adicionais entram pelo `dossie build --claims` ou pelo
+  campo "Afirmações e fontes" do painel. O painel preenche a data de acesso,
+  mas não julga a credibilidade da fonte: isso continua sendo decisão humana.
 
 ## 9. Quando algo falha
 

@@ -22,6 +22,19 @@ from fla10_agents.models import (
 DEFAULT_EVENT_DAYS = 7
 DEFAULT_SIGNAL_DAYS = 3
 
+# Estado que encerra a pauta: não vira proposta de novo.
+PAUTA_STATUS_ENCERRADOS = frozenset({
+    "publicada",
+    "aprovada",
+    "concluida",
+    "cancelada",
+    "adiada",
+})
+
+# Campos da nota do vault que viram ângulo e checagens da proposta.
+PAUTA_ANGLE_FIELDS = ("Ângulo", "Foco")
+PAUTA_CHECK_FIELDS = ("Checagens", "Cuidados", "Limite")
+
 
 def _is_flamengo(name: str) -> bool:
     return "flamengo" in name.casefold()
@@ -200,6 +213,84 @@ def proposals_from_signals(
     return proposals
 
 
+def proposals_from_pautas(
+    pautas: Iterable[Pauta],
+    published: Iterable[str] = (),
+    *,
+    now: datetime | None = None,
+) -> list[EditorialProposal]:
+    """Transforma pautas pendentes do vault em propostas de matéria.
+
+    Pauta com estado encerrado ou janela já vencida fica de fora: a nota
+    continua no vault como histórico, mas não vira pauta nova. A pauta não
+    concorre consigo mesma na checagem de redundância.
+    """
+    reference = now or datetime.now(UTC)
+    pauta_list = list(pautas)
+    published_list = list(published)
+    proposals: list[EditorialProposal] = []
+    vistos: set[str] = set()
+
+    for pauta in pauta_list:
+        if pauta.status in PAUTA_STATUS_ENCERRADOS:
+            continue
+        if pauta.window is not None and pauta.window < reference.date():
+            continue
+
+        angle = next(
+            (
+                pauta.fields[campo].strip()
+                for campo in PAUTA_ANGLE_FIELDS
+                if pauta.fields.get(campo, "").strip()
+            ),
+            "",
+        )
+        checagens = [
+            pauta.fields[campo].strip()
+            for campo in PAUTA_CHECK_FIELDS
+            if pauta.fields.get(campo, "").strip()
+        ]
+
+        proposal = EditorialProposal(
+            proposal_id=_dedupe_key("proposal", "pauta", pauta.title)[:32],
+            title=pauta.title,
+            format="ultimas_noticias",
+            editorial_question=(
+                "O que a apuração confirma sobre a pauta: " + pauta.title
+            ),
+            angle=angle or "Desenvolver a pauta registrada no vault editorial.",
+            why_now=(
+                f"Pauta {pauta.kind} do vault editorial ({pauta.source})."
+                if pauta.kind
+                else f"Pauta do vault editorial ({pauta.source})."
+            ),
+            confirmed_facts=[],
+            questions_to_verify=checagens,
+            initial_sources=[],
+            window=pauta.window.isoformat() if pauta.window else None,
+            dedupe_key=_dedupe_key("pauta", pauta.title),
+            priority_recommendation=(
+                "normal" if pauta.kind == "mencionada" else "baixa"
+            ),
+            created_at=reference,
+        )
+
+        if proposal.proposal_id in vistos:
+            continue
+        vistos.add(proposal.proposal_id)
+
+        chave = pauta.title.casefold().strip()
+        outras = [
+            outra
+            for outra in pauta_list
+            if outra.title.casefold().strip() != chave
+        ]
+        report = check_redundancy(pauta.title, proposal.angle, outras, published_list)
+        proposals.append(_apply_redundancy(proposal, report))
+
+    return proposals
+
+
 def build_proposals(
     events: Iterable[SportsEvent],
     signals: Iterable[MonitoringSignal],
@@ -227,5 +318,10 @@ def build_proposals(
             published_list,
             now=now,
             days=signal_days,
+        ),
+        *proposals_from_pautas(
+            pauta_list,
+            published_list,
+            now=now,
         ),
     ]

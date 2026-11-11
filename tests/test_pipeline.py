@@ -100,7 +100,7 @@ def test_pipeline_creates_event_and_signal_proposals(tmp_path) -> None:
     assert result["pautas"] == 2
     assert result["events"] == 1
     assert result["signals"] == 1
-    assert result["created"] == 2
+    assert result["created"] == 3
     assert result["skipped"] == 0
 
     with EditorialRepository(editorial_db) as store:
@@ -109,8 +109,10 @@ def test_pipeline_creates_event_and_signal_proposals(tmp_path) -> None:
 
     formats = {proposal.format for proposal in proposals}
     assert formats == {"onde_assistir", "ultimas_noticias"}
+    titles = {proposal.title for proposal in proposals}
+    assert "Projeto sobre a base do Flamengo" in titles
     assert runs[0]["status"] == "completed"
-    assert runs[0]["created"] == 2
+    assert runs[0]["created"] == 3
 
 
 def test_pipeline_is_idempotent_and_preserves_decisions(tmp_path) -> None:
@@ -130,7 +132,7 @@ def test_pipeline_is_idempotent_and_preserves_decisions(tmp_path) -> None:
     second = run_pauta_pipeline(calendar_db, editorial_db, vault_root=vault, now=NOW)
 
     assert second["created"] == 0
-    assert second["skipped"] == 2
+    assert second["skipped"] == 3
 
     with EditorialRepository(editorial_db) as store:
         stored = store.get_proposal(event_proposal.proposal_id)

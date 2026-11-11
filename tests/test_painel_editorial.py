@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -162,3 +163,149 @@ def test_base_vazia_orienta_a_gerar_propostas(
     assert not list(at.exception)
     assert any("Nenhuma proposta registrada" in info.value for info in at.info)
     assert [botao.label for botao in at.button] == ["Gerar propostas"]
+
+
+def test_modelo_de_afirmacoes_tem_claims_e_data_em_branco() -> None:
+    from painel_editorial import modelo_claims_json
+
+    modelo = json.loads(modelo_claims_json())
+
+    assert isinstance(modelo["claims"], list)
+    assert modelo["claims"][0]["evidence"][0]["accessed_at"] == ""
+
+
+def test_preparar_claims_preenche_accessed_at_no_envio() -> None:
+    from datetime import UTC, datetime
+
+    from painel_editorial import preparar_claims
+
+    agora = datetime(2026, 11, 11, 9, 30, tzinfo=UTC)
+    payload = preparar_claims(
+        {
+            "claims": [
+                {
+                    "claim_id": "c1",
+                    "claim_text": "Horário confirmado.",
+                    "classification": "confirmed",
+                    "evidence": [
+                        {"url": "https://example.com/a", "accessed_at": ""},
+                        {"url": "https://example.com/b", "accessed_at": "PREENCHER"},
+                        {"url": "https://example.com/c"},
+                    ],
+                }
+            ]
+        },
+        agora=agora,
+    )
+
+    datas = [
+        evidencia["accessed_at"]
+        for evidencia in payload["claims"][0]["evidence"]
+    ]
+    assert datas == [agora.isoformat()] * 3
+    assert payload["claims"][0]["claim_text"] == "Horário confirmado."
+
+
+def test_preparar_claims_preserva_data_informada() -> None:
+    from painel_editorial import preparar_claims
+
+    payload = preparar_claims(
+        {
+            "claims": [
+                {
+                    "claim_id": "c1",
+                    "claim_text": "Fato.",
+                    "classification": "confirmed",
+                    "evidence": [
+                        {
+                            "url": "https://example.com/a",
+                            "accessed_at": "2026-11-10T08:00:00-03:00",
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert (
+        payload["claims"][0]["evidence"][0]["accessed_at"]
+        == "2026-11-10T08:00:00-03:00"
+    )
+
+
+def test_preparar_claims_recusa_formato_invalido() -> None:
+    from painel_editorial import preparar_claims
+
+    with pytest.raises(TypeError):
+        preparar_claims({"claims": "não é lista"})
+    with pytest.raises(TypeError):
+        preparar_claims("texto")
+
+
+def test_painel_oferece_modelo_e_campo_de_afirmacoes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    at = _painel_com_minuta(tmp_path, monkeypatch)
+
+    assert not list(at.exception)
+    assert any(
+        botao.label == "Baixar modelo JSON"
+        for botao in at.get("download_button")
+    )
+    assert at.text_area(key="painel-claims-texto") is not None
+    assert at.text_area(key="painel-contradicoes") is not None
+
+
+def test_painel_grava_afirmacoes_no_dossie(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    at = _painel_com_minuta(tmp_path, monkeypatch)
+    at.text_area(key="painel-claims-texto").input(
+        json.dumps(
+            {
+                "claims": [
+                    {
+                        "claim_id": "c-extra",
+                        "claim_text": "O jogo começa às 21h30.",
+                        "classification": "confirmed",
+                        "evidence": [
+                            {
+                                "url": "https://example.com/tabela",
+                                "source_type": "tabela oficial",
+                                "author_or_institution": "CBF",
+                                "accessed_at": "",
+                                "supports": ["horário"],
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+    ).run()
+
+    botoes = {botao.label: botao for botao in at.button}
+    botoes["Refazer dossiê"].click().run()
+
+    assert not list(at.exception)
+    with EditorialRepository(tmp_path / "editorial.db") as store:
+        dossie = store.get_dossier("p1")
+
+    assert dossie is not None
+    extra = next(
+        claim for claim in dossie.claims if claim.claim_id == "c-extra"
+    )
+    assert extra.evidence[0].accessed_at is not None
+
+
+def test_painel_recusa_afirmacoes_invalidas(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    at = _painel_com_minuta(tmp_path, monkeypatch)
+    at.text_area(key="painel-claims-texto").input("{invalido").run()
+
+    botoes = {botao.label: botao for botao in at.button}
+    botoes["Refazer dossiê"].click().run()
+
+    assert not list(at.exception)
+    assert any("JSON inválido" in erro.value for erro in at.error)

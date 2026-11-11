@@ -313,9 +313,16 @@ O pipeline combina:
 
 - jogos do Flamengo na janela de `--event-days` para propostas de serviço;
 - sinais recentes que mencionem o Flamengo na janela de `--signal-days` para propostas de última notícia;
+- pautas pendentes do vault, com ângulo e checagens da própria nota;
 - pautas do vault e matérias já publicadas para a checagem de redundância.
 
-Cada proposta registra pergunta editorial, ângulo, fatos confirmados, informações a verificar, fontes iniciais, janela, prioridade e risco de redundância. A deduplicação usa o evento ou o sinal de origem; executar o pipeline de novo atualiza o conteúdo sem duplicar propostas e preserva a decisão humana já registrada.
+Pauta do vault com estado encerrado (`publicada`, `aprovada`, `concluida`,
+`cancelada` ou `adiada`) ou com janela já vencida não vira proposta nova: a
+nota continua no vault como histórico. Pauta `mencionada` entra com prioridade
+normal; `reservada`, `projeto` e as demais, com prioridade baixa. A pauta não
+concorre consigo mesma na checagem de redundância.
+
+Cada proposta registra pergunta editorial, ângulo, fatos confirmados, informações a verificar, fontes iniciais, janela, prioridade e risco de redundância. A deduplicação usa o evento, o sinal ou o título da pauta de origem; executar o pipeline de novo atualiza o conteúdo sem duplicar propostas e preserva a decisão humana já registrada.
 
 A aprovação é sempre humana. `approve` e `reject` apenas registram a decisão no banco; o vault não é alterado.
 
@@ -323,7 +330,7 @@ A aprovação é sempre humana. `approve` e `reject` apenas registram a decisão
 
 O dossiê só é montado para proposta com decisão `approved`. Uma proposta pendente ou rejeitada retorna erro sem gravar dossiê.
 
-`--claims` é opcional: sem ele, o dossiê usa os fatos confirmados da proposta e as fontes do evento na agenda — que já bastam para uma pauta de serviço. Para exibir o dossiê gravado:
+`--claims` é opcional: sem ele, o dossiê usa os fatos confirmados da proposta e as fontes do evento na agenda — que já bastam para uma pauta de serviço. Pauta vinda do vault ou de sinal nasce sem fato confirmado; nesse caso, o arquivo de afirmações é o que leva o dossiê a `pronto para redação`. Para exibir o dossiê gravado:
 
 ```bash
 fla10 dossie mostrar ID_DA_PROPOSTA
@@ -357,6 +364,8 @@ Formato de `claims.json`:
 ```
 
 Classificações aceitas: `confirmed`, `attributed`, `context`, `analysis`, `hypothesis` e `unconfirmed`. O dossiê separa fatos utilizáveis, informações que exigem atribuição, análise admissível e afirmações excluídas. Fato confirmado sem evidência e atribuição sem autor identificado viram lacunas críticas. O resultado recomenda `pronto para redação`, `revisar contradições` ou `apuração insuficiente`.
+
+No painel, a etapa **2. Dossiê** tem o campo "Afirmações e fontes (opcional)": dá para colar o JSON, enviar um arquivo ou baixar o modelo. O painel preenche `accessed_at` com a data e a hora do clique em "Montar dossiê" quando o campo vem vazio; datas informadas são preservadas. As contradições vão uma por linha.
 
 ### Registrar matérias publicadas
 
