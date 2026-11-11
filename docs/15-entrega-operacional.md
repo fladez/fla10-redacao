@@ -27,8 +27,10 @@ código e continua sem ser executado automaticamente.
 - Quatro versões por execução, salvas em arquivos separados.
 - Apuração determinística em Python: ficha oficial do último jogo (API do
   Cartola FC/ge) e notícias recentes (RSS do Google News).
-- Interface local em Streamlit: pauta, geração, abas, downloads, abertura de
-  execuções antigas e aprovação.
+- Interface local em Streamlit com duas áreas: o pipeline de 6 agentes
+  (pauta, geração, abas, downloads, abertura de execuções antigas e
+  aprovação) e o fluxo por pauta (propostas, dossiê, minuta, revisão e
+  decisão).
 - Verificação automática de qualidade das versões antes da aprovação.
 - Pacote de CMS com `article.md`, `article.html`, `package.json`,
   `metadata.json` e `site-news.json` (documento `news` para o Firestore).
@@ -79,6 +81,25 @@ que roda no interpretador do pipeline.
 
 Tempo esperado do passo 3: de 7 a 10 minutos, com 6 chamadas ao modelo.
 
+### Fluxo por pauta (área "Pautas e minutas" do painel)
+
+Para pauta que não vem de jogo — e para a minuta a partir da agenda — o painel
+tem a área **Pautas e minutas**, em cinco etapas:
+
+1. **Propostas** — gera as propostas da agenda e do vault e mostra formato,
+   janela, prioridade e risco de redundância. Aprovar aqui é decisão local.
+2. **Dossiê** — um clique monta o dossiê a partir dos fatos confirmados da
+   pauta e das fontes do evento; lista fatos utilizáveis, lacunas e
+   contradições. Sem fonte, o fato não entra.
+3. **Minuta** — gera só com pauta aprovada e dossiê "pronto para redação".
+   Mostra corpo, SEO, textos sociais, fontes e ficha técnica da geração.
+4. **Revisão** — verificação automática (sem modelo) ou revisão independente.
+   Exibe veredito e problemas por severidade.
+5. **Decisão** — aprovar ou rejeitar. Problema alto ou crítico aparece em
+   vermelho, mas a aprovação segue permitida; veredito `bloqueado` impede.
+
+Nenhuma etapa publica. Tudo fica no banco editorial local.
+
 ## 4. Comandos
 
 ```bash
@@ -93,6 +114,17 @@ Tempo esperado do passo 3: de 7 a 10 minutos, com 6 chamadas ao modelo.
 
 # conferir a decisão da rotina sem executar nada
 /Users/rcorreas/miniconda3/envs/fla10/bin/python rotina_pos_jogo.py --sem-executar
+
+# fluxo por pauta, sem interface
+.venv/bin/fla10 pipeline run --event-days 20
+.venv/bin/fla10 pautas list --status awaiting_human
+.venv/bin/fla10 pautas approve <proposta>
+.venv/bin/fla10 dossie build <proposta>
+.venv/bin/fla10 dossie mostrar <proposta>
+.venv/bin/fla10 redacao gerar <proposta>
+.venv/bin/fla10 redacao list
+.venv/bin/fla10 redacao revisar <minuta>
+.venv/bin/fla10 redacao aprovar <minuta>
 
 # montar o pacote de uma versão já aprovada, sem interface
 .venv/bin/python -m fla10_agents publicacao importar \
@@ -183,9 +215,11 @@ gravado no Firestore pelo sistema.
 - A renderização visual no navegador não foi conferida nesta entrega.
 - O `fla10 redacao aprovar` só recusa texto com veredito `bloqueado`; um
   relatório `ajustes_necessarios` (inclusive issue de severidade alta) não
-  impede a aprovação. A decisão é do editor — conferir o veredito antes.
-- A interface Streamlit cobre o pipeline de 6 agentes. O fluxo
-  proposta → dossiê → minuta → revisão é de CLI (`fla10 redacao …`), sem UI.
+  impede a aprovação. A decisão é do editor — o painel mostra o aviso em
+  vermelho, mas não bloqueia.
+- O dossiê automático usa os fatos confirmados da pauta e as fontes do evento
+  na agenda. Afirmações adicionais só entram pelo `dossie build --claims`; o
+  painel não tem campo para colar afirmações.
 
 ## 9. Quando algo falha
 

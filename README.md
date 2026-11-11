@@ -109,7 +109,23 @@ Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `complet
 /Users/rcorreas/miniconda3/envs/fla10/bin/streamlit run app.py
 ```
 
-Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. Um seletor lista todas as execuções em `exports/`, então dá para abrir e aprovar o que a rotina pós-jogo gerou, mesmo depois de fechar a página. A aprovação é registrada em `aprovada.json` na pasta da execução e gera o pacote de CMS; a pauta vem do próprio arquivo quando o pipeline grava `pauta.txt`. Nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
+A barra lateral tem duas áreas:
+
+- **Pautas e minutas** (padrão) — o fluxo editorial em cinco etapas: propostas
+  da agenda, dossiê, minuta, revisão e decisão. Cada etapa mostra o estado real
+  e só libera a seguinte quando a anterior está pronta: sem pauta aprovada não
+  há dossiê, sem dossiê "pronto para redação" não há minuta, sem revisão a
+  decisão fica sem contexto. A revisão exibe veredito e problemas por
+  severidade, e avisa em vermelho quando há problema alto ou crítico.
+- **Redação (6 agentes)** — campo de pauta, botão de geração, quatro abas (uma
+  por versão) e download em Markdown. Um seletor lista todas as execuções em
+  `exports/`, então dá para abrir e aprovar o que a rotina pós-jogo gerou,
+  mesmo depois de fechar a página. A aprovação é registrada em `aprovada.json`
+  na pasta da execução e gera o pacote de CMS; a pauta vem do próprio arquivo
+  quando o pipeline grava `pauta.txt`.
+
+Nenhuma das áreas envia conteúdo ao site. O Streamlit é opcional
+(`pip install -e ".[ui]"`).
 
 ## Pacote de CMS (opcional — fora do escopo inicial)
 
@@ -288,6 +304,12 @@ A aprovação é sempre humana. `approve` e `reject` apenas registram a decisão
 ### Montar o dossiê de apuração
 
 O dossiê só é montado para proposta com decisão `approved`. Uma proposta pendente ou rejeitada retorna erro sem gravar dossiê.
+
+`--claims` é opcional: sem ele, o dossiê usa os fatos confirmados da proposta e as fontes do evento na agenda — que já bastam para uma pauta de serviço. Para exibir o dossiê gravado:
+
+```bash
+fla10 dossie mostrar ID_DA_PROPOSTA
+```
 
 ```bash
 fla10 dossie build ID_DA_PROPOSTA --claims claims.json --contradiction "Horário divergente em fonte secundária."

@@ -381,6 +381,17 @@ def dossie_build(
     return 0
 
 
+def dossie_mostrar(database_path: str, proposal_id: str) -> int:
+    """Mostra o dossiê já gravado de uma proposta, sem apurar de novo."""
+    with EditorialRepository(database_path) as store:
+        if store.get_proposal(proposal_id) is None:
+            raise KeyError(f"Pauta não encontrada: {proposal_id}")
+        dossier = store.get_dossier(proposal_id)
+
+    _print_json(dossier.model_dump(mode="json") if dossier else None)
+    return 0
+
+
 def publicacoes_add(
     database_path: str,
     title: str,
@@ -795,6 +806,16 @@ def main() -> None:
         help="Monta o dossiê de apuração de uma proposta.",
     )
     dossie_commands = dossie_parser.add_subparsers(dest="dossie_command", required=True)
+    dossie_mostrar_parser = dossie_commands.add_parser(
+        "mostrar",
+        help="Mostra o dossiê já gravado da proposta.",
+    )
+    dossie_mostrar_parser.add_argument("proposal_id", help="Identificador da proposta.")
+    dossie_mostrar_parser.add_argument(
+        "--database",
+        default=default_editorial_database_path(),
+        help="Banco editorial SQLite (padrão: data/editorial.db na raiz do projeto).",
+    )
     dossie_build_parser = dossie_commands.add_parser(
         "build",
         help="Valida afirmações e grava o dossiê da proposta.",
@@ -1145,6 +1166,8 @@ def main() -> None:
                 raise SystemExit(sinais_add(args.database, args.input, args.provider))
             if args.sinais_command == "list":
                 raise SystemExit(sinais_list(args.database, args.limit))
+        if args.command == "dossie" and args.dossie_command == "mostrar":
+            raise SystemExit(dossie_mostrar(args.database, args.proposal_id))
         if args.command == "dossie" and args.dossie_command == "build":
             raise SystemExit(dossie_build(
                 args.database,

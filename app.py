@@ -19,6 +19,7 @@ from pathlib import Path
 
 import streamlit as st
 
+import painel_editorial
 from qualidade import avaliar, pode_aprovar
 from versoes import separar_versoes
 
@@ -29,6 +30,9 @@ PASTA_SAIDAS = Path(os.getenv("FLA10_EXPORTS") or (BASE / "exports")).expanduser
 PASTA_PACOTES = PASTA_SAIDAS / "pacotes"
 BANCO_EDITORIAL = Path(
     os.getenv("FLA10_EDITORIAL_DATABASE") or (BASE / "data" / "editorial.db")
+).expanduser()
+BANCO_CALENDARIO = Path(
+    os.getenv("FLA10_CALENDAR_DATABASE") or (BASE / "data" / "calendar.db")
 ).expanduser()
 
 
@@ -210,6 +214,26 @@ def mostrar_execucao(pasta: Path, log: str | None = None) -> None:
 
 
 st.set_page_config(page_title="Redação FLA10", page_icon="🔴", layout="wide")
+
+area = st.sidebar.radio(
+    "Área",
+    ["Pautas e minutas", "Redação (6 agentes)"],
+    key="area",
+    help=(
+        "Pautas e minutas: pesquisa, dossiê e minuta com decisão humana. "
+        "Redação: pipeline de 6 agentes a partir de uma pauta livre."
+    ),
+)
+
+if area == "Pautas e minutas":
+    st.title("Redação FLA10 News")
+    painel_editorial.render(
+        PYTHON_CLI if PYTHON_CLI.is_file() else PYTHON,
+        BASE,
+        BANCO_EDITORIAL,
+        BANCO_CALENDARIO,
+    )
+    st.stop()
 
 st.title("Redação FLA10 News")
 st.caption("6 agentes em sequência: apuração → 4 versões → revisão. Custo zero, DeepSeek local.")

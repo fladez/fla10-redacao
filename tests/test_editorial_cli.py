@@ -200,6 +200,17 @@ def test_pautas_pipeline_and_dossie_flow(tmp_path, monkeypatch, capsys) -> None:
 
     code, out, err = run_cli(
         monkeypatch,
+        ["dossie", "mostrar", proposal_id, "--database", str(editorial_db)],
+        capsys,
+    )
+    assert code == 0, err
+    gravado = json.loads(out)
+    assert gravado["proposal_id"] == proposal_id
+    assert gravado["contradictions"] == ["Horário divergente."]
+    assert gravado["claims"]
+
+    code, out, err = run_cli(
+        monkeypatch,
         ["publicacoes", "add", "--title", "Flamengo x Palmeiras: onde assistir",
          "--published-at", "2026-11-11T10:00:00-03:00",
          "--database", str(editorial_db)],
