@@ -343,10 +343,11 @@ def render(
 
     # --- 1. Propostas --------------------------------------------------
     st.subheader(ETAPAS[0])
-    with st.expander("Gerar propostas a partir da agenda"):
+    with st.expander("Gerar propostas a partir da agenda e do vault"):
         st.caption(
-            "Lê a agenda de jogos e as pautas do vault. Só cria proposta para "
-            "jogo do Flamengo dentro da janela."
+            "Lê a agenda de jogos e as pautas do vault. Cria proposta para "
+            "jogo do Flamengo dentro da janela e para pauta pendente do vault; "
+            "pauta encerrada ou vencida fica fora."
         )
         dias = st.number_input(
             "Janela de jogos (dias)",
