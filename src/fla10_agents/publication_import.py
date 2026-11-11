@@ -149,13 +149,13 @@ def separar_artigo(markdown: str) -> tuple[str, str, str]:
     titulo = ""
     inicio = 0
     for indice, linha in enumerate(linhas):
-        if linha.startswith("# "):
-            titulo = linha[2:].strip()
+        if re.match(r"^#{1,2}\s+\S", linha):
+            titulo = re.sub(r"^#{1,2}\s+", "", linha).strip()
             inicio = indice + 1
             break
 
     if not titulo:
-        raise VersaoInvalida("A versão não começa com um título '# '.")
+        raise VersaoInvalida("A versão não começa com um título '# ' ou '## '.")
 
     blocos = _blocos("\n".join(linhas[inicio:]))
     subtitulo = ""

@@ -19,6 +19,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from qualidade import avaliar, pode_aprovar
 from versoes import separar_versoes
 
 BASE = Path(__file__).resolve().parent
@@ -150,6 +151,13 @@ def mostrar_execucao(pasta: Path, log: str | None = None) -> None:
     else:
         st.warning("Quantidade diferente de 4: confira o texto antes de aprovar.")
 
+    avisos = avaliar(versoes)
+    if avisos:
+        with st.expander(f"Verificação automática: {len(avisos)} aviso(s)", expanded=True):
+            for aviso in avisos:
+                marca = "❌" if aviso.critico else "⚠️"
+                st.write(f"{marca} {aviso}")
+
     abas = st.tabs([f"Versão {numero}" for numero, _ in versoes] or ["Sem versões"])
     for aba, (numero, corpo) in zip(abas, versoes):
         with aba:
@@ -184,13 +192,16 @@ def mostrar_execucao(pasta: Path, log: str | None = None) -> None:
         placeholder="Ex.: Flamengo 3 x 1 Grêmio — resultado e declarações",
         key=f"pauta-{pasta.name}",
     )
+    liberado = pode_aprovar(avisos)
     escolhida = st.selectbox(
         "Versão aprovada",
         options=[numero for numero, _ in versoes],
         format_func=lambda numero: f"Versão {numero}",
         key=f"versao-{pasta.name}",
     )
-    if st.button("Registrar aprovação local", key=f"aprovar-{pasta.name}"):
+    if not liberado:
+        st.caption("Corrija os erros estruturais acima antes de aprovar.")
+    if st.button("Registrar aprovação local", key=f"aprovar-{pasta.name}", disabled=not liberado):
         aprovar(pasta, escolhida, dict(versoes).get(escolhida, ""), pauta_aprovacao)
 
     if log:

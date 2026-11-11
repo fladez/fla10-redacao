@@ -36,6 +36,7 @@ Calendário e Agenda, Monitoramento e Pautas, Apuração e Verificação, Produ�
 - [Configuração local](docs/10-configuracao-local.md)
 - [Prompt comum do teste de reportagem](docs/12-prompt-comum-teste-reportagem.md)
 - [Pacote documental — A força da Nação](docs/13-caso-teste-a-forca-da-nacao.md)
+- [Entrega operacional](docs/15-entrega-operacional.md)
 
 ## Diagnóstico da integração editorial
 

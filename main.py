@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import resultados
 from opencode_llm import OpenCodeLLM
 from pauta import cita_jogo, consultas_de_busca
+from qualidade import avaliar, pode_aprovar
 from versoes import salvar_versoes, separar_versoes
 
 # 1. Carregar variáveis de ambiente
@@ -193,8 +194,9 @@ agentes = {
 if USAR_REACT:
     descricao_apuracao = (
         f"Use a ferramenta de busca na web para pesquisar sobre: '{tema_pesquisa}'. "
-        "Traga um resumo estruturado com: Placar, Gols, Destaques individuais, "
-        "Declarações pós-jogo e Contexto na tabela."
+        "Traga um resumo estruturado com os fatos principais da pauta. Se a pauta for "
+        "sobre uma partida, inclua Placar, Gols, Destaques individuais, Declarações "
+        "pós-jogo e Contexto na tabela; se não for, não monte ficha de partida."
     )
 else:
     print("🔎 Coletando resultado oficial (Cartola/ge.globo)...")
@@ -237,8 +239,10 @@ else:
             "O material abaixo já foi coletado automaticamente. "
             "NÃO chame ferramentas e NÃO invente dados.\n\n"
             + "\n\n".join(blocos)
-            + "\n\nCom base SOMENTE nesse material, monte um relatório estruturado com: "
-            "Placar, Gols, Destaques individuais, Declarações pós-jogo e Contexto na tabela. "
+            + "\n\nCom base SOMENTE nesse material, monte um relatório estruturado "
+            "com os fatos principais da pauta. Quando a pauta for sobre uma partida, "
+            "inclua Placar, Gols, Destaques individuais, Declarações pós-jogo e "
+            "Contexto na tabela; quando não for, não monte ficha de partida. "
             "Indique a data e a fonte de cada informação. Se algum campo não aparecer "
             "no material, escreva 'não encontrado' em vez de supor.\n\n"
             + (
@@ -261,14 +265,26 @@ else:
 tarefa_apuracao = Task(
     description=descricao_apuracao,
     agent=agentes["apurador"],
-    expected_output="Um relatório factual e estruturado com todos os dados da partida."
+    expected_output=(
+        "Um relatório factual e estruturado sobre a pauta, com data e fonte de cada "
+        "informação."
+    ),
 )
 
 def criar_tarefa_redacao(nome_agente, estilo):
     return Task(
-        description=f"Com base no relatório de apuração, escreva uma matéria completa sobre o jogo no estilo '{estilo}'. Inclua um Título Chamativo e o Corpo do Texto.",
+        description=(
+            "Com base no relatório de apuração, escreva uma matéria completa sobre a "
+            f"pauta '{tema_pesquisa}', no estilo '{estilo}'. Comece com o título em "
+            "Markdown no formato '# Título', seguido do corpo do texto. Se a pauta for "
+            "sobre uma partida, escreva como relato de jogo; se não for, escreva sobre "
+            "o tema da pauta e não monte ficha de partida nem invente placar, gols, "
+            "escalação ou declarações."
+        ),
         agent=agentes[nome_agente],
-        expected_output=f"Matéria completa em Markdown, estilo {estilo}."
+        expected_output=(
+            f"Matéria completa em Markdown, estilo {estilo}, começando com '# Título'."
+        )
     )
 
 tarefas_redacao = [
@@ -287,8 +303,9 @@ tarefa_revisao = Task(
         "Formato obrigatório de saída: antes de cada versão escreva, sozinha na linha, "
         "uma marcação exatamente assim: <!-- VERSAO:1 --> e assim por diante até 4, na "
         "ordem em que as versões foram geradas (1 notícia, 2 análise tática, 3 crônica, "
-        "4 popular). Não use '---' como separador entre versões nem dentro dos textos; "
-        "para separar seções dentro de um texto use '###'."
+        "4 popular). Cada versão deve começar com o título em Markdown no formato "
+        "'# Título', seguido do corpo. Não use '---' como separador entre versões nem "
+        "dentro dos textos; para separar seções dentro de um texto use '###'."
     ),
     agent=agentes["revisor"],
     expected_output=(
@@ -328,6 +345,15 @@ else:
         f"\n⚠️  Esperava 4 versões e encontrei {len(versoes)}. "
         "Confira o texto acima antes de publicar."
     )
+
+avisos = avaliar(versoes)
+if avisos:
+    print("\n🔎 Verificação automática das versões:")
+    for aviso in avisos:
+        marca = "❌" if aviso.critico else "⚠️ "
+        print(f"   {marca} {aviso}")
+    if not pode_aprovar(avisos):
+        print("   ❌ Há erros estruturais: não aprove estas versões sem revisar.")
 pasta = salvar_versoes(resultado.raw, versoes)
 (pasta / "pauta.txt").write_text(tema_pesquisa + "\n", encoding="utf-8")
 print(f"📁 Arquivos salvos em {pasta.resolve()}")

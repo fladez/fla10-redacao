@@ -83,6 +83,16 @@ def test_separar_artigo_extrai_titulo_subtitulo_e_corpo() -> None:
     assert "**A CBF" not in corpo
 
 
+def test_separar_artigo_aceita_titulo_com_dois_cerquilhas() -> None:
+    texto = f"## Título de nível dois\n\n{CORPO}\n"
+
+    titulo, subtitulo, corpo = separar_artigo(texto)
+
+    assert titulo == "Título de nível dois"
+    assert subtitulo == ""
+    assert corpo.startswith("A Confederação")
+
+
 def test_separar_artigo_sem_subtitulo_mantem_lead() -> None:
     texto = f"# Título direto\n\n{CORPO}\n"
 
