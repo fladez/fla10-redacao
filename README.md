@@ -5,6 +5,19 @@ Sistema modular de agentes especializados para apoiar a Redação Fla10.
 ## Objetivo
 Apoiar monitoramento, planejamento, apuração, produção, revisão, SEO, distribuição e registro editorial, mantendo a decisão final e a autorização de publicação sob responsabilidade humana.
 
+## Escopo inicial (11/11/2026)
+**Pesquisa de pautas e minutas de matéria. Nada é publicado no portal.**
+
+| Entrega | Situação |
+|---|---|
+| Pesquisa de pautas | ✅ RSS + ficha do jogo + Fase 1 (sinais, propostas, dossiê) |
+| Minutas de matéria | ✅ `fla10 redacao gerar` → `revisar` → decisão humana |
+| Pacote de CMS | ⚪ gera local, nunca é enviado |
+| Publicação no portal | ❌ fora do escopo; manual e não faz parte do fluxo |
+
+Aprovação registra a decisão editorial e não dispara nada. Detalhes em
+[`docs/15-entrega-operacional.md`](docs/15-entrega-operacional.md).
+
 ## Repositórios
 - **Fla10-Agents:** código, arquitetura, orquestração, integrações, testes e documentação técnica.
 - **Redacao-Fla10:** fonte canônica das regras editoriais, formatos, pautas, agenda, processos e histórico.
@@ -98,7 +111,10 @@ Saída: `.md` por versão em `exports/redacao-<data>-<hora>/`, além de `complet
 
 Abre uma página com campo de pauta, botão de geração, quatro abas (uma por versão) e download em Markdown. Um seletor lista todas as execuções em `exports/`, então dá para abrir e aprovar o que a rotina pós-jogo gerou, mesmo depois de fechar a página. A aprovação é registrada em `aprovada.json` na pasta da execução e gera o pacote de CMS; a pauta vem do próprio arquivo quando o pipeline grava `pauta.txt`. Nada é enviado ao site. O Streamlit é opcional (`pip install -e ".[ui]"`).
 
-## Pacote de CMS
+## Pacote de CMS (opcional — fora do escopo inicial)
+
+> O escopo inicial entrega pesquisa e minuta. Este pacote continua gerando
+> localmente, mas não faz parte do fluxo de hoje e nunca é enviado ao site.
 
 Aprovar na interface gera o pacote da versão escolhida em `exports/pacotes/<execução>-v<versão>/`, com `article.md`, `article.html`, `package.json`, `metadata.json` e `site-news.json` (título, slug, resumo para IA, SEO e textos sociais). O pacote também entra no banco editorial, então `fla10 publicacao list` e `fla10 publicacao registrar` funcionam nele.
 

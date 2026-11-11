@@ -4,6 +4,21 @@ Guia para operar a Redação FLA10 no dia a dia. Cobre o que já está pronto, o
 que continua manual e o que fazer quando algo falha. Nenhuma etapa publica
 conteúdo no site sozinha.
 
+## 0. Escopo inicial (definido em 11/11/2026)
+
+O sistema **pesquisa pautas e redige minutas. Nada é publicado no portal.**
+
+| Entrega | Situação |
+|---|---|
+| Pesquisa de pautas | ✅ busca RSS + ficha do jogo + pipeline Fase 1 (sinais, propostas, dossiê) |
+| Minutas de matéria | ✅ `fla10 redacao gerar` → `revisar` → decisão humana |
+| Pacote de CMS | ⚪ gera local (`publicacao preparar/exportar`), nunca é enviado |
+| Publicação no portal | ❌ fora do escopo; continua manual e não faz parte do fluxo |
+
+O que muda na prática: a aprovação registra a decisão editorial, mas não
+dispara nada. O caminho `site-news.json` → Firestore continua existindo no
+código e continua sem ser executado automaticamente.
+
 ## 1. O que está entregue
 
 - Pipeline de 6 agentes em sequência (`Process.sequential`): Apurador,
@@ -129,7 +144,11 @@ Regras da rotina:
 Agendamento só no OpenBot. Não usar cron, `launchd` ou agendador do provedor: o
 usuário não conseguiria ver nem parar o trabalho.
 
-## 7. Publicação (manual)
+## 7. Publicação (manual — fora do escopo inicial)
+
+> Fora do escopo inicial: a entrega é pesquisa e minuta. Esta seção fica
+> documentada para quando a publicação for ativada, mas nenhuma etapa abaixo
+> faz parte do fluxo de hoje.
 
 O site lê a coleção `news` do Firestore. Não existe endpoint autorizado para
 escrita e o formulário do painel exige URL de imagem 16:9. Por isso a
@@ -162,7 +181,11 @@ gravado no Firestore pelo sistema.
   `<p>` para inserir anúncio no meio. O texto é exibido; o posicionamento do
   anúncio pode variar.
 - A renderização visual no navegador não foi conferida nesta entrega.
-- Estes commits ainda não foram enviados ao remoto. Ver a seção 11.
+- O `fla10 redacao aprovar` só recusa texto com veredito `bloqueado`; um
+  relatório `ajustes_necessarios` (inclusive issue de severidade alta) não
+  impede a aprovação. A decisão é do editor — conferir o veredito antes.
+- A interface Streamlit cobre o pipeline de 6 agentes. O fluxo
+  proposta → dossiê → minuta → revisão é de CLI (`fla10 redacao …`), sem UI.
 
 ## 9. Quando algo falha
 
