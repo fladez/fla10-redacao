@@ -162,10 +162,7 @@ gravado no Firestore pelo sistema.
   `<p>` para inserir anúncio no meio. O texto é exibido; o posicionamento do
   anúncio pode variar.
 - A renderização visual no navegador não foi conferida nesta entrega.
-- Estes commits ainda não foram enviados ao remoto. O `origin/main` tem outra
-  linha de trabalho (40 commits à frente do merge-base), com conflitos em
-  `cli.py`, `config.py`, `models.py`, `README.md` e alguns documentos: mesclar
-  exige decisão humana sobre qual linha é a canônica.
+- Estes commits ainda não foram enviados ao remoto. Ver a seção 11.
 
 ## 9. Quando algo falha
 
@@ -192,3 +189,36 @@ Resultado esperado: 226 testes aprovados, Ruff sem achados e mypy sem erros em
 `src`. O pipeline real foi executado ponta a ponta nesta entrega, com 6 tarefas
 e 4 versões, a custo zero, em duas pautas diferentes (uma de bastidores, sem
 ficha de partida, e uma de final da Copa do Brasil Feminina).
+
+## 11. Linha canônica do repositório
+
+**Decisão (10/11/2026): a linha local é a canônica.** O `origin/main` segue como
+linha separada, sem mescla.
+
+Motivos, com evidência da tentativa de mescla abortada:
+
+- A linha remota não tem o pipeline: faltam `main.py`, `app.py`, `opencode_llm.py`,
+  `versoes.py`, `resultados.py`, `pauta.py`, `qualidade.py`, `rotina_pos_jogo.py`
+  e `requirements-pipeline.txt`. Sem ela não há o produto desta entrega.
+- A linha remota define `OpenRouterSettings` com `openai/gpt-6-luna-pro` e
+  `openai/gpt-6-luna` e exige `OPENROUTER_API_KEY`. Isso contradiz a regra do
+  projeto: só `opencode/deepseek-v4.1-flash-free`, custo zero.
+- Os conflitos são arquitetônicos, não textuais: `ReviewIssue` e `ReviewReport`
+  existem nos dois lados com schemas diferentes (severidade `critico/alto` de um
+  lado, `critical/high` do outro), `DraftArticle` de um lado e `ArticleDraft` do
+  outro, e `EditorialRepository` em `editorial.store` de um lado e
+  `editorial.repository` do outro. Resolver exigiria renomear modelos e refazer
+  os dois conjuntos de testes.
+- `calendar/cbf_source.py` diverge em comportamento: a linha local aceita rodada
+  sem data como `provisional`; a remota lança `CBFSourceError` quando não acha a
+  data. São regras opostas, e cada lado tem teste da própria regra.
+
+O que já está mapeado para reaproveitar depois, por cherry-pick e não por mescla:
+proteção contra redirecionamento interno no RSS
+(`079bc29`, `32cf582`, `fca9b11`), deduplicação de sinais (`7faf326`) e o
+planejador de cobertura da agenda (`ca2448e`, `dc5eb51`). Nada disso entra sem
+um teste próprio no lado local.
+
+Como os dois lados nasceram do mesmo ponto (`c2a0e92`), publicar a linha local
+exige escolher entre criar uma branch nova no remoto ou substituir o
+`origin/main`. Nenhum dos dois foi feito.
