@@ -34,8 +34,9 @@ código e continua sem ser executado automaticamente.
 - Verificação automática de qualidade das versões antes da aprovação.
 - Pacote de CMS com `article.md`, `article.html`, `package.json`,
   `metadata.json` e `site-news.json` (documento `news` para o Firestore).
-- Rotina pós-jogo no OpenBot, em dois horários, que só redige quando há jogo
-  recente.
+- Rotina diária no OpenBot (07:00) que gera as propostas de pauta da agenda,
+  sem modelo e sem custo. As rotinas pós-jogo existem, mas estão desativadas
+  enquanto o escopo for pesquisa e minuta.
 - Testes, Ruff e mypy no CI (`.github/workflows/tests.yml`), em Python 3.11 e
   3.12.
 
@@ -158,20 +159,25 @@ achados ficam como aviso:
 
 ## 6. Rotinas no OpenBot
 
-Duas rotinas ativas, no fuso `America/Sao_Paulo`:
+Uma rotina ativa, no fuso `America/Sao_Paulo`:
 
 | Horário | Papel |
 |---|---|
-| 23:30 | resultado do dia |
-| 08:00 | rede de segurança para jogo que terminou tarde ou cota esgotada |
+| 07:00 | gera as propostas de pauta da agenda (`pipeline run --event-days 30`) e avisa só quando cria alguma |
 
-Regras da rotina:
+Regras da rotina de pesquisa:
 
-- janela de 14 horas desde o início da partida;
-- marcador `exports/.ultima-rotina.json` evita redigir o mesmo jogo duas vezes;
-- log em `logs/rotina-*.log` quando o pipeline é chamado;
-- sem jogo recente, responde `sem_jogo_recente` antes de criar `logs/` — a
-  ausência de log nesse caso é esperada.
+- janela de 30 dias: a proposta nasce quando o jogo entra na agenda, com
+  antecedência para dossiê e minuta;
+- não chama modelo e não consome cota — é leitura de banco e vault;
+- dedupe por evento: rodar de novo atualiza sem duplicar e preserva a decisão
+  humana já registrada;
+- sem proposta nova, responde `routine_no_update` e não notifica;
+- nunca aprova pauta, nunca publica.
+
+As duas rotinas pós-jogo (23:30 e 08:00) foram **desativadas** quando o escopo
+passou a ser pesquisa e minuta. Elas continuam cadastradas e podem ser
+reativadas se as quatro versões voltarem ao fluxo.
 
 Agendamento só no OpenBot. Não usar cron, `launchd` ou agendador do provedor: o
 usuário não conseguiria ver nem parar o trabalho.
